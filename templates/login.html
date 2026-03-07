@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ログイン - LINE 一斉配信</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="login-wrapper">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>LINE 一斉配信</h1>
+                <p>アカウントにログイン</p>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="login-error">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            <form method="POST" action="/login{% if request.args.get('next') %}?next={{ request.args.get('next') }}{% endif %}">
+                <div class="login-field">
+                    <label for="email">メールアドレス</label>
+                    <input type="text" id="email" name="email" placeholder="admin@admin" required autofocus>
+                </div>
+                <div class="login-field">
+                    <label for="password">パスワード</label>
+                    <input type="password" id="password" name="password" placeholder="パスワード" required>
+                </div>
+                <button type="submit" class="login-btn">ログイン</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

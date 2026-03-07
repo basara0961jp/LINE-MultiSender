@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LINE 複数アカウント管理 + 一斉配信</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- ユーザーバー -->
+    <div class="user-bar">
+        <div class="user-bar-inner">
+            <span class="user-email">{{ current_user.email }}</span>
+            <div class="user-bar-links">
+                {% if current_user.is_admin %}
+                <a href="/admin">管理画面</a>
+                {% endif %}
+                <a href="/chat" id="chatNavLink">チャット</a>
+                <a href="/logout">ログアウト</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>LINE 複数アカウント管理 + 一斉配信</h1>
+
+        <!-- アカウント管理 -->
+        <section class="section">
+            <h2>アカウント管理</h2>
+            <div class="add-account">
+                <input type="text" id="tokenInput" placeholder="Channel Access Token を貼り付け">
+                <button id="addBtn" onclick="addAccount()">追加</button>
+            </div>
+            <div class="add-account-extra">
+                <input type="text" id="secretInput" placeholder="Channel Secret（任意・Webhook署名検証用）">
+                <input type="number" id="maxFriendsInput" placeholder="友だち上限（デフォルト500）" min="1" value="500">
+            </div>
+            <div id="accountList" class="account-list">
+                <p class="empty-msg">アカウントが登録されていません</p>
+            </div>
+        </section>
+
+        <!-- Webhook URL一括更新 -->
+        <section class="section">
+            <h2>Webhook URL 設定</h2>
+            <p class="hint">ngrokのパブリックURLを入力して、全アカウントのWebhook URLを一括更新します。<br>2回目以降はLINEからメッセージが来れば自動更新されます。</p>
+            <div class="add-account">
+                <input type="text" id="publicUrlInput" placeholder="https://xxxxx.ngrok-free.app">
+                <button id="updateWebhookBtn" onclick="updateWebhooks()">一括更新</button>
+            </div>
+            <div id="webhookResult"></div>
+        </section>
+
+        <!-- 登録URL -->
+        <section class="section">
+            <h2>自動振り分け登録URL</h2>
+            <div class="register-url-box">
+                <code id="registerUrl"></code>
+                <button class="copy-btn" onclick="copyRegisterUrl()" title="コピー">&#128203;</button>
+            </div>
+            <p class="hint">このURLにアクセスすると、空きのあるアカウントへ自動リダイレクトされます。</p>
+            <div id="capacityOverview" class="capacity-overview"></div>
+        </section>
+
+        <!-- メッセージ作成 -->
+        <section class="section">
+            <h2>メッセージ作成</h2>
+            <textarea id="messageInput" rows="6" placeholder="送信するメッセージを入力..."></textarea>
+            <div class="char-count"><span id="charCount">0</span> / 5000</div>
+            <div class="image-attach-area">
+                <input type="file" id="broadcastImageInput" accept="image/*" style="display:none" onchange="handleBroadcastImage(event)">
+                <button class="image-attach-btn" onclick="document.getElementById('broadcastImageInput').click()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                    画像を添付
+                </button>
+                <div id="broadcastImagePreview" class="broadcast-image-preview hidden">
+                    <img id="broadcastPreviewImg" src="" alt="">
+                    <button class="image-preview-cancel" onclick="cancelBroadcastImage()">&times;</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 送信モード -->
+        <section class="section">
+            <h2>送信モード</h2>
+            <div class="mode-select">
+                <label class="mode-option">
+                    <input type="radio" name="mode" value="broadcast" checked>
+                    <span class="mode-label">ブロードキャスト</span>
+                    <span class="mode-desc">全友だちに送信</span>
+                </label>
+                <label class="mode-option">
+                    <input type="radio" name="mode" value="multicast">
+                    <span class="mode-label">マルチキャスト</span>
+                    <span class="mode-desc">指定ユーザーに送信</span>
+                </label>
+            </div>
+            <div id="userIdsArea" class="hidden">
+                <textarea id="userIdsInput" rows="3" placeholder="ユーザーIDを1行に1つ入力..."></textarea>
+            </div>
+        </section>
+
+        <!-- 送信 -->
+        <section class="section">
+            <div class="schedule-toggle">
+                <label class="schedule-check-label">
+                    <input type="checkbox" id="scheduleCheck">
+                    <span>予約送信</span>
+                </label>
+                <div id="scheduleInput" class="schedule-input hidden">
+                    <input type="datetime-local" id="scheduledAt">
+                </div>
+            </div>
+            <button id="sendBtn" class="send-btn" onclick="handleSend()">送信</button>
+        </section>
+
+        <!-- 予約一覧 -->
+        <section id="scheduleSection" class="section hidden">
+            <h2>予約一覧</h2>
+            <div id="scheduleList"></div>
+        </section>
+
+        <!-- 結果表示 -->
+        <section id="resultSection" class="section hidden">
+            <h2>送信結果</h2>
+            <div id="resultList"></div>
+        </section>
+    </div>
+
+    <!-- 上限編集モーダル -->
+    <div id="editModal" class="modal hidden">
+        <div class="modal-content">
+            <h3>アカウント設定</h3>
+            <input type="hidden" id="editAccountId">
+            <label>友だち上限</label>
+            <input type="number" id="editMaxFriends" min="1">
+            <label>Channel Secret</label>
+            <input type="text" id="editChannelSecret" placeholder="未設定">
+            <div class="modal-actions">
+                <button class="modal-cancel" onclick="closeEditModal()">キャンセル</button>
+                <button class="modal-save" onclick="saveAccountSettings()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+    <script>
+    (function(){
+        var origTitle = document.title;
+        function pollUnread(){
+            fetch('/api/chat/unread-count').then(r=>r.json()).then(d=>{
+                var link = document.getElementById('chatNavLink');
+                if(!link) return;
+                var badge = link.querySelector('.nav-badge');
+                if(d.count > 0){
+                    if(!badge){badge=document.createElement('span');badge.className='nav-badge';link.appendChild(badge);}
+                    badge.textContent = d.count > 99 ? '99+' : d.count;
+                    document.title = '(' + d.count + ') ' + origTitle;
+                } else {
+                    if(badge) badge.remove();
+                    document.title = origTitle;
+                }
+            }).catch(function(){});
+        }
+        pollUnread();
+        setInterval(pollUnread, 5000);
+    })();
+    </script>
+</body>
+</html>

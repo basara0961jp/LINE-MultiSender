@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.secret_key
+.public_url
+users.db
+uploads/
+*.bak

@@ -1,0 +1,1366 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: #f0f2f5;
+    color: #333;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 24px 16px;
+}
+
+h1 {
+    text-align: center;
+    color: #06c755;
+    margin-bottom: 24px;
+    font-size: 1.6rem;
+}
+
+h2 {
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+    color: #555;
+    border-bottom: 2px solid #06c755;
+    padding-bottom: 4px;
+}
+
+.section {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* アカウント追加 */
+.add-account {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.add-account input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.add-account input:focus {
+    outline: none;
+    border-color: #06c755;
+}
+
+.add-account button {
+    padding: 10px 20px;
+    background: #06c755;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.add-account button:hover {
+    background: #05b04a;
+}
+
+.add-account button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.add-account-extra {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.add-account-extra input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.85rem;
+}
+
+.add-account-extra input:focus {
+    outline: none;
+    border-color: #06c755;
+}
+
+.add-account-extra input[type="number"] {
+    max-width: 160px;
+}
+
+/* アカウントリスト */
+.account-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.empty-msg {
+    color: #999;
+    text-align: center;
+    padding: 16px;
+    font-size: 0.9rem;
+}
+
+.account-item {
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.account-item:hover {
+    background: #e8f5e9;
+}
+
+.account-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.account-header input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #06c755;
+    cursor: pointer;
+}
+
+.account-header .name {
+    flex: 1;
+    font-weight: 500;
+}
+
+.account-header .action-btn {
+    background: none;
+    border: 1px solid #ddd;
+    color: #666;
+    cursor: pointer;
+    font-size: 0.8rem;
+    padding: 3px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.account-header .action-btn:hover {
+    border-color: #06c755;
+    color: #06c755;
+}
+
+.account-header .delete-btn {
+    background: none;
+    border: none;
+    color: #e53935;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.account-header .delete-btn:hover {
+    background: #ffebee;
+}
+
+/* 友だち数とプログレスバー */
+.account-detail {
+    margin-top: 8px;
+    padding-left: 28px;
+}
+
+.friend-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.friend-info .count {
+    font-weight: 600;
+    color: #333;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 6px;
+}
+
+.progress-bar .fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.progress-bar .fill.green { background: #06c755; }
+.progress-bar .fill.yellow { background: #ffc107; }
+.progress-bar .fill.red { background: #e53935; }
+
+/* Webhook URL */
+.webhook-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: #888;
+    margin-top: 4px;
+}
+
+.webhook-info code {
+    background: #f0f2f5;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    word-break: break-all;
+    flex: 1;
+}
+
+.copy-btn {
+    background: none;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 2px 6px;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.copy-btn:hover {
+    border-color: #06c755;
+    background: #e8f5e9;
+}
+
+/* 登録URLセクション */
+.register-url-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f8f9fa;
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+.register-url-box code {
+    flex: 1;
+    font-size: 0.9rem;
+    word-break: break-all;
+    color: #06c755;
+    font-weight: 600;
+}
+
+.hint {
+    font-size: 0.8rem;
+    color: #999;
+    margin-bottom: 12px;
+}
+
+.capacity-overview {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.capacity-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    padding: 6px 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.capacity-row .cap-name {
+    min-width: 100px;
+    font-weight: 500;
+}
+
+.capacity-row .cap-bar {
+    flex: 1;
+    height: 6px;
+    background: #e0e0e0;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.capacity-row .cap-fill {
+    height: 100%;
+    border-radius: 3px;
+}
+
+.capacity-row .cap-fill.green { background: #06c755; }
+.capacity-row .cap-fill.yellow { background: #ffc107; }
+.capacity-row .cap-fill.red { background: #e53935; }
+
+.capacity-row .cap-text {
+    min-width: 80px;
+    text-align: right;
+    font-size: 0.8rem;
+    color: #666;
+}
+
+/* メッセージ入力 */
+textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    resize: vertical;
+    font-family: inherit;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: #06c755;
+}
+
+.char-count {
+    text-align: right;
+    color: #999;
+    font-size: 0.8rem;
+}
+
+.image-attach-area {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.image-attach-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: #f0f2f5;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: #555;
+    transition: background 0.15s;
+}
+
+.image-attach-btn:hover {
+    background: #e8f5e9;
+    border-color: #06c755;
+    color: #06c755;
+}
+
+.broadcast-image-preview {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.broadcast-image-preview img {
+    max-height: 60px;
+    max-width: 100px;
+    border-radius: 6px;
+    object-fit: cover;
+    border: 1px solid #ddd;
+    margin-top: 4px;
+}
+
+/* 送信モード */
+.mode-select {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.mode-option {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.mode-option:has(input:checked) {
+    border-color: #06c755;
+    background: #e8f5e9;
+}
+
+.mode-option input[type="radio"] {
+    margin-bottom: 4px;
+    accent-color: #06c755;
+}
+
+.mode-label {
+    font-weight: bold;
+    font-size: 0.95rem;
+}
+
+.mode-desc {
+    font-size: 0.8rem;
+    color: #888;
+}
+
+/* ユーザーID入力 */
+#userIdsArea {
+    margin-top: 12px;
+}
+
+/* 送信ボタン */
+.send-btn {
+    width: 100%;
+    padding: 14px;
+    background: #06c755;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.send-btn:hover {
+    background: #05b04a;
+}
+
+.send-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+/* 結果表示 */
+.result-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+.result-item.success {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.result-item.error {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.result-item .icon {
+    font-size: 1.3rem;
+}
+
+.result-item .detail {
+    flex: 1;
+}
+
+.result-item .name {
+    font-weight: bold;
+}
+
+.result-item .msg {
+    font-size: 0.85rem;
+    margin-top: 2px;
+}
+
+/* モーダル */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    width: 360px;
+    max-width: 90vw;
+}
+
+.modal-content h3 {
+    margin-bottom: 16px;
+    color: #333;
+}
+
+.modal-content label {
+    display: block;
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 4px;
+    margin-top: 12px;
+}
+
+.modal-content label:first-of-type {
+    margin-top: 0;
+}
+
+.modal-content input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.modal-content input:focus {
+    outline: none;
+    border-color: #06c755;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+    justify-content: flex-end;
+}
+
+.modal-cancel {
+    padding: 8px 16px;
+    background: #f0f2f5;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.modal-cancel:hover {
+    background: #e0e0e0;
+}
+
+.modal-save {
+    padding: 8px 20px;
+    background: #06c755;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.modal-save:hover {
+    background: #05b04a;
+}
+
+/* 予約送信トグル */
+.schedule-toggle {
+    margin-bottom: 12px;
+}
+
+.schedule-check-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.schedule-check-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #06c755;
+    cursor: pointer;
+}
+
+.schedule-input {
+    margin-top: 10px;
+}
+
+.schedule-input input[type="datetime-local"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: inherit;
+}
+
+.schedule-input input[type="datetime-local"]:focus {
+    outline: none;
+    border-color: #06c755;
+}
+
+/* 予約一覧 */
+.schedule-card {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    border-left: 4px solid #06c755;
+}
+
+.schedule-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.schedule-time {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #06c755;
+}
+
+.schedule-cancel-btn {
+    background: none;
+    border: none;
+    color: #e53935;
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.schedule-cancel-btn:hover {
+    background: #ffebee;
+}
+
+.schedule-body {
+    padding-left: 2px;
+}
+
+.schedule-msg {
+    font-size: 0.9rem;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.schedule-meta {
+    font-size: 0.8rem;
+    color: #888;
+}
+
+/* ─── ユーザーバー ─────────────────────────────── */
+.user-bar {
+    background: #06c755;
+    color: #fff;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+}
+
+.user-bar-inner {
+    max-width: 720px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.user-email {
+    font-weight: 600;
+}
+
+.user-bar-links {
+    display: flex;
+    gap: 16px;
+}
+
+.user-bar-links a {
+    color: #fff;
+    text-decoration: none;
+    opacity: 0.9;
+    transition: opacity 0.2s;
+}
+
+.user-bar-links a:hover {
+    opacity: 1;
+    text-decoration: underline;
+}
+
+/* ─── ログインページ ──────────────────────────── */
+.login-wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f0f2f5;
+}
+
+.login-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 40px 32px;
+    width: 380px;
+    max-width: 90vw;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 28px;
+}
+
+.login-header h1 {
+    color: #06c755;
+    font-size: 1.6rem;
+    margin-bottom: 6px;
+}
+
+.login-header p {
+    color: #888;
+    font-size: 0.9rem;
+}
+
+.login-field {
+    margin-bottom: 16px;
+}
+
+.login-field label {
+    display: block;
+    font-size: 0.85rem;
+    color: #555;
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+.login-field input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.95rem;
+}
+
+.login-field input:focus {
+    outline: none;
+    border-color: #06c755;
+}
+
+.login-btn {
+    width: 100%;
+    padding: 12px;
+    background: #06c755;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.2s;
+}
+
+.login-btn:hover {
+    background: #05b04a;
+}
+
+.login-error {
+    background: #ffebee;
+    color: #c62828;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    margin-bottom: 16px;
+}
+
+/* ─── 管理画面 ────────────────────────────────── */
+.admin-form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.admin-form input[type="text"],
+.admin-form input[type="password"] {
+    flex: 1;
+    min-width: 140px;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.admin-form input:focus {
+    outline: none;
+    border-color: #06c755;
+}
+
+.admin-check-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.admin-check-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #06c755;
+}
+
+.add-user-btn {
+    padding: 8px 20px;
+    background: #06c755;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.add-user-btn:hover {
+    background: #05b04a;
+}
+
+.admin-table-wrap {
+    overflow-x: auto;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.admin-table th,
+.admin-table td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.admin-table th {
+    background: #f8f9fa;
+    color: #555;
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+}
+
+.admin-table tr:hover {
+    background: #f8f9fa;
+}
+
+.badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-admin {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.badge-user {
+    background: #f0f2f5;
+    color: #666;
+}
+
+.action-cell {
+    display: flex;
+    gap: 6px;
+}
+
+.btn-reset {
+    padding: 4px 10px;
+    background: #fff;
+    border: 1px solid #06c755;
+    color: #06c755;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.btn-reset:hover {
+    background: #e8f5e9;
+}
+
+.btn-delete-user {
+    padding: 4px 10px;
+    background: #fff;
+    border: 1px solid #e53935;
+    color: #e53935;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.btn-delete-user:hover {
+    background: #ffebee;
+}
+
+/* ユーティリティ */
+.hidden {
+    display: none !important;
+}
+
+/* ローディング */
+.loading {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 3px solid #fff;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ─── チャット画面 ──────────────────────────────── */
+
+.chat-bar-inner {
+    max-width: 1100px;
+}
+
+/* 未読バッジ（ナビバー） */
+.nav-badge {
+    background: #e53935;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: bold;
+    padding: 1px 5px;
+    border-radius: 8px;
+    margin-left: 3px;
+    vertical-align: super;
+}
+
+.active-link {
+    font-weight: bold;
+    text-decoration: underline !important;
+    opacity: 1 !important;
+}
+
+.chat-container {
+    display: flex;
+    height: calc(100vh - 40px);
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #fff;
+}
+
+/* サイドバー */
+.chat-sidebar {
+    width: 300px;
+    min-width: 300px;
+    border-right: 1px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+}
+
+.chat-sidebar-header {
+    padding: 16px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.chat-sidebar-header h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #06c755;
+    border: none;
+    padding: 0;
+}
+
+.chat-conv-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.chat-empty {
+    color: #999;
+    text-align: center;
+    padding: 32px 16px;
+    font-size: 0.9rem;
+}
+
+/* 会話アイテム */
+.conv-item {
+    display: flex;
+    gap: 10px;
+    padding: 12px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f2f5;
+    transition: background 0.15s;
+}
+
+.conv-item:hover {
+    background: #f8f9fa;
+}
+
+.conv-item.conv-active {
+    background: #e8f5e9;
+}
+
+.conv-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.conv-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.conv-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.conv-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.conv-time {
+    font-size: 0.72rem;
+    color: #999;
+    flex-shrink: 0;
+    margin-left: 6px;
+}
+
+.conv-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.conv-last {
+    font-size: 0.82rem;
+    color: #888;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.conv-unread {
+    background: #06c755;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: bold;
+    padding: 1px 7px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    margin-left: 6px;
+}
+
+.conv-bot {
+    font-size: 0.72rem;
+    color: #aaa;
+}
+
+/* メインエリア */
+.chat-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.chat-main-placeholder {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #bbb;
+    font-size: 1rem;
+}
+
+.chat-main-active {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.chat-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e0e0e0;
+    background: #fafafa;
+}
+
+.chat-back-btn {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    color: #06c755;
+}
+
+.chat-header-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.chat-header-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-header-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.chat-header-bot {
+    font-size: 0.75rem;
+    color: #999;
+}
+
+/* メッセージエリア */
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: #f0f2f5;
+}
+
+.chat-bubble {
+    max-width: 70%;
+    padding: 10px 14px;
+    border-radius: 16px;
+    word-break: break-word;
+}
+
+.chat-bubble-in {
+    align-self: flex-start;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-bottom-left-radius: 4px;
+}
+
+.chat-bubble-out {
+    align-self: flex-end;
+    background: #06c755;
+    color: #fff;
+    border-bottom-right-radius: 4px;
+}
+
+.bubble-text {
+    font-size: 0.92rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+.bubble-time {
+    font-size: 0.68rem;
+    margin-top: 4px;
+    opacity: 0.7;
+    text-align: right;
+}
+
+.chat-bubble-in .bubble-time {
+    color: #999;
+}
+
+.bubble-image {
+    max-width: 220px;
+    max-height: 220px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: block;
+}
+
+/* 画像プレビュー */
+.chat-image-preview {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: #f8f9fa;
+    border-top: 1px solid #e0e0e0;
+}
+
+.chat-image-preview img {
+    max-height: 80px;
+    max-width: 120px;
+    border-radius: 6px;
+    object-fit: cover;
+}
+
+.image-preview-cancel {
+    background: #e53935;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    font-size: 1rem;
+    cursor: pointer;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+/* ライトボックス */
+.lightbox {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    cursor: pointer;
+}
+
+.lightbox img {
+    max-width: 90%;
+    max-height: 90%;
+    border-radius: 4px;
+}
+
+/* 入力エリア */
+.chat-input-area {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid #e0e0e0;
+    background: #fff;
+    align-items: flex-end;
+}
+
+.chat-input-area textarea {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    resize: none;
+    max-height: 120px;
+    line-height: 1.4;
+    font-family: inherit;
+}
+
+.chat-input-area textarea:focus {
+    outline: none;
+    border-color: #06c755;
+}
+
+.chat-attach-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #888;
+    padding: 6px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.chat-attach-btn:hover {
+    color: #06c755;
+    background: #f0f2f5;
+}
+
+.chat-send-btn {
+    padding: 10px 20px;
+    background: #06c755;
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.chat-send-btn:hover {
+    background: #05b04a;
+}
+
+.chat-send-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+/* モバイル対応 */
+@media (max-width: 520px) {
+    .chat-sidebar {
+        width: 100%;
+        min-width: 100%;
+    }
+
+    .chat-main {
+        display: none;
+    }
+
+    .chat-sidebar-hidden {
+        display: none !important;
+    }
+
+    .chat-main-visible {
+        display: flex !important;
+    }
+
+    .chat-back-btn {
+        display: block;
+    }
+
+    .chat-bubble {
+        max-width: 85%;
+    }
+}

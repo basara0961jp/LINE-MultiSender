@@ -1,0 +1,7 @@
+flask
+flask-login
+aiohttp
+requests
+APScheduler
+waitress
+werkzeug

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理画面 - LINE 一斉配信</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- ユーザーバー -->
+    <div class="user-bar">
+        <div class="user-bar-inner">
+            <span class="user-email">{{ current_user.email }}</span>
+            <div class="user-bar-links">
+                <a href="/">メイン画面</a>
+                <a href="/chat" id="chatNavLink">チャット</a>
+                <a href="/logout">ログアウト</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>管理画面</h1>
+
+        <!-- ユーザー追加 -->
+        <section class="section">
+            <h2>ユーザー追加</h2>
+            <div id="addUserMsg"></div>
+            <div class="admin-form">
+                <input type="text" id="newEmail" placeholder="メールアドレス">
+                <input type="password" id="newPassword" placeholder="パスワード">
+                <label class="admin-check-label">
+                    <input type="checkbox" id="newIsAdmin">
+                    <span>管理者</span>
+                </label>
+                <button class="add-user-btn" onclick="addUser()">追加</button>
+            </div>
+        </section>
+
+        <!-- ユーザー一覧 -->
+        <section class="section">
+            <h2>ユーザー一覧</h2>
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>メールアドレス</th>
+                            <th>権限</th>
+                            <th>作成日</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTableBody">
+                        {% for user in users %}
+                        <tr id="user-row-{{ user['id'] }}">
+                            <td>{{ user['id'] }}</td>
+                            <td>{{ user['email'] }}</td>
+                            <td>
+                                {% if user['is_admin'] %}
+                                <span class="badge badge-admin">管理者</span>
+                                {% else %}
+                                <span class="badge badge-user">一般</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ user['created_at'][:10] if user['created_at'] else '-' }}</td>
+                            <td class="action-cell">
+                                <button class="btn-reset" onclick="resetPassword({{ user['id'] }})">PW変更</button>
+                                <button class="btn-delete-user" onclick="deleteUser({{ user['id'] }}, '{{ user['email'] }}')">削除</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <script>
+    async function addUser() {
+        const email = document.getElementById('newEmail').value.trim();
+        const password = document.getElementById('newPassword').value.trim();
+        const isAdmin = document.getElementById('newIsAdmin').checked;
+        const msgEl = document.getElementById('addUserMsg');
+
+        if (!email || !password) {
+            msgEl.innerHTML = '<div class="login-error">メールアドレスとパスワードを入力してください</div>';
+            return;
+        }
+
+        const resp = await fetch('/admin/users', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({email, password, is_admin: isAdmin}),
+        });
+        const data = await resp.json();
+
+        if (resp.ok) {
+            location.reload();
+        } else {
+            msgEl.innerHTML = '<div class="login-error">' + escapeHtml(data.error) + '</div>';
+        }
+    }
+
+    async function deleteUser(id, email) {
+        if (!confirm(email + ' を削除しますか？')) return;
+
+        const resp = await fetch('/admin/users/' + id, {method: 'DELETE'});
+        const data = await resp.json();
+
+        if (resp.ok) {
+            const row = document.getElementById('user-row-' + id);
+            if (row) row.remove();
+        } else {
+            alert(data.error);
+        }
+    }
+
+    async function resetPassword(id) {
+        const newPw = prompt('新しいパスワードを入力:');
+        if (!newPw) return;
+
+        const resp = await fetch('/admin/users/' + id + '/reset-password', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({password: newPw}),
+        });
+        const data = await resp.json();
+
+        if (resp.ok) {
+            alert('パスワードを変更しました');
+        } else {
+            alert(data.error);
+        }
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+    </script>
+    <script>
+    (function(){
+        var origTitle = document.title;
+        function pollUnread(){
+            fetch('/api/chat/unread-count').then(r=>r.json()).then(d=>{
+                var link = document.getElementById('chatNavLink');
+                if(!link) return;
+                var badge = link.querySelector('.nav-badge');
+                if(d.count > 0){
+                    if(!badge){badge=document.createElement('span');badge.className='nav-badge';link.appendChild(badge);}
+                    badge.textContent = d.count > 99 ? '99+' : d.count;
+                    document.title = '(' + d.count + ') ' + origTitle;
+                } else {
+                    if(badge) badge.remove();
+                    document.title = origTitle;
+                }
+            }).catch(function(){});
+        }
+        pollUnread();
+        setInterval(pollUnread, 5000);
+    })();
+    </script>
+</body>
+</html>
