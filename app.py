@@ -643,6 +643,16 @@ def friends_page():
     return render_template("friends.html")
 
 
+@app.route("/terms")
+def terms_page():
+    return render_template("terms.html")
+
+
+@app.route("/privacy")
+def privacy_page():
+    return render_template("privacy.html")
+
+
 @app.route("/api/friends")
 @login_required
 def api_friends():
