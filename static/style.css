@@ -341,6 +341,12 @@ textarea:focus {
     font-size: 0.8rem;
 }
 
+.friend-count-badge {
+    font-size: 0.8rem;
+    color: #888;
+    margin-left: auto;
+}
+
 .image-attach-area {
     margin-top: 8px;
     display: flex;

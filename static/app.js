@@ -51,45 +51,67 @@ function getProgressColor(pct) {
     return "green";
 }
 
+// 現在のページがアカウント管理ページかどうか
+const isAccountsPage = window.location.pathname === "/accounts";
+
 function renderAccounts(accounts) {
     const list = document.getElementById("accountList");
     if (accounts.length === 0) {
-        list.innerHTML = '<p class="empty-msg">アカウントが登録されていません</p>';
+        if (isAccountsPage) {
+            list.innerHTML = '<p class="empty-msg">アカウントが登録されていません</p>';
+        } else {
+            list.innerHTML = '<p class="empty-msg">アカウントが登録されていません。<a href="/accounts">アカウント管理</a>から追加してください。</p>';
+        }
         return;
     }
 
     const baseUrl = window.location.origin;
 
-    list.innerHTML = accounts.map(acc => {
-        const pct = acc.maxFriends > 0 ? Math.min(100, Math.round(acc.friendCount / acc.maxFriends * 100)) : 0;
-        const color = getProgressColor(pct);
-        const webhookUrl = `${baseUrl}/webhook/${acc.id}`;
+    if (isAccountsPage) {
+        // アカウント管理ページ: フル表示
+        list.innerHTML = accounts.map(acc => {
+            const pct = acc.maxFriends > 0 ? Math.min(100, Math.round(acc.friendCount / acc.maxFriends * 100)) : 0;
+            const color = getProgressColor(pct);
+            const webhookUrl = `${baseUrl}/webhook/${acc.id}`;
 
-        return `
-        <div class="account-item" data-id="${acc.id}">
-            <div class="account-header">
-                <input type="checkbox" checked>
-                <span class="name">${escapeHtml(acc.name)}</span>
-                <button class="action-btn" onclick="refreshFriendCount('${acc.id}')" title="友だち数を更新">&#8635;</button>
-                <button class="action-btn" onclick="openEditModal('${acc.id}', ${acc.maxFriends})" title="設定">&#9881;</button>
-                <button class="delete-btn" onclick="deleteAccount('${acc.id}')" title="削除">&#10005;</button>
-            </div>
-            <div class="account-detail">
-                <div class="friend-info">
-                    友だち: <span class="count">${acc.friendCount} / ${acc.maxFriends}</span>
-                    (${pct}%)
+            return `
+            <div class="account-item" data-id="${acc.id}">
+                <div class="account-header">
+                    <span class="name">${escapeHtml(acc.name)}</span>
+                    <button class="action-btn" onclick="refreshFriendCount('${acc.id}')" title="友だち数を更新">&#8635;</button>
+                    <button class="action-btn" onclick="openEditModal('${acc.id}', ${acc.maxFriends})" title="設定">&#9881;</button>
+                    <button class="delete-btn" onclick="deleteAccount('${acc.id}')" title="削除">&#10005;</button>
                 </div>
-                <div class="progress-bar">
-                    <div class="fill ${color}" style="width: ${pct}%"></div>
+                <div class="account-detail">
+                    <div class="friend-info">
+                        友だち: <span class="count">${acc.friendCount} / ${acc.maxFriends}</span>
+                        (${pct}%)
+                    </div>
+                    <div class="progress-bar">
+                        <div class="fill ${color}" style="width: ${pct}%"></div>
+                    </div>
+                    <div class="webhook-info">
+                        Webhook:
+                        <code>${escapeHtml(webhookUrl)}</code>
+                        <button class="copy-btn" onclick="copyText('${webhookUrl}')" title="コピー">&#128203;</button>
+                    </div>
                 </div>
-                <div class="webhook-info">
-                    Webhook:
-                    <code>${escapeHtml(webhookUrl)}</code>
-                    <button class="copy-btn" onclick="copyText('${webhookUrl}')" title="コピー">&#128203;</button>
+            </div>`;
+        }).join("");
+    } else {
+        // 配信ページ: チェックボックス + 名前のみ
+        list.innerHTML = accounts.map(acc => {
+            const pct = acc.maxFriends > 0 ? Math.min(100, Math.round(acc.friendCount / acc.maxFriends * 100)) : 0;
+            return `
+            <div class="account-item" data-id="${acc.id}">
+                <div class="account-header">
+                    <input type="checkbox" checked>
+                    <span class="name">${escapeHtml(acc.name)}</span>
+                    <span class="friend-count-badge">${acc.friendCount}人</span>
                 </div>
-            </div>
-        </div>`;
-    }).join("");
+            </div>`;
+        }).join("");
+    }
 }
 
 function renderCapacityOverview(accounts) {

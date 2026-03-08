@@ -12,7 +12,8 @@
         <div class="user-bar-inner chat-bar-inner">
             <span class="user-email">{{ current_user.email }}</span>
             <div class="user-bar-links">
-                <a href="/">メイン画面</a>
+                <a href="/">配信</a>
+                <a href="/accounts">アカウント管理</a>
                 {% if current_user.is_admin %}
                 <a href="/admin">管理画面</a>
                 {% endif %}

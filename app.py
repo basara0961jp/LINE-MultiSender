@@ -755,6 +755,12 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/accounts")
+@login_required
+def accounts_page():
+    return render_template("accounts.html")
+
+
 @app.route("/register")
 def register_redirect():
     """空きアカウントへ自動リダイレクト"""
