@@ -761,6 +761,53 @@ def accounts_page():
     return render_template("accounts.html")
 
 
+@app.route("/friends")
+@login_required
+def friends_page():
+    return render_template("friends.html")
+
+
+@app.route("/api/friends")
+@login_required
+def api_friends():
+    """全アカウントの友だち一覧"""
+    conn = get_db()
+    account_rows = conn.execute(
+        "SELECT id, name FROM accounts WHERE user_id = ?", (current_user.id,)
+    ).fetchall()
+    account_map = {r["id"]: r["name"] for r in account_rows}
+
+    if not account_map:
+        conn.close()
+        return jsonify([])
+
+    placeholders = ",".join("?" * len(account_map))
+    rows = conn.execute(f"""
+        SELECT f.*,
+               (SELECT COUNT(*) FROM chat_messages cm
+                WHERE cm.account_id = f.account_id AND cm.line_user_id = f.line_user_id) AS message_count
+        FROM line_friends f
+        WHERE f.account_id IN ({placeholders})
+        ORDER BY f.updated_at DESC
+    """, list(account_map.keys())).fetchall()
+    conn.close()
+
+    result = []
+    for r in rows:
+        result.append({
+            "accountId": r["account_id"],
+            "accountName": account_map.get(r["account_id"], ""),
+            "lineUserId": r["line_user_id"],
+            "displayName": r["display_name"] or r["line_user_id"][:8],
+            "pictureUrl": r["picture_url"] or "",
+            "status": r["status"],
+            "messageCount": r["message_count"],
+            "createdAt": r["created_at"],
+            "updatedAt": r["updated_at"],
+        })
+    return jsonify(result)
+
+
 @app.route("/register")
 def register_redirect():
     """空きアカウントへ自動リダイレクト"""

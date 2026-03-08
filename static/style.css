@@ -952,6 +952,132 @@ textarea:focus {
     to { transform: rotate(360deg); }
 }
 
+/* ─── 友だち一覧 ──────────────────────────────── */
+
+.friends-toolbar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.friends-search input {
+    padding: 8px 14px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    width: 200px;
+}
+
+.friends-search input:focus {
+    outline: none;
+    border-color: #06c755;
+}
+
+.friends-filter {
+    display: flex;
+    gap: 8px;
+}
+
+.friends-filter select {
+    padding: 8px 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    background: #fff;
+}
+
+.friends-count {
+    margin-left: auto;
+    font-size: 0.85rem;
+    color: #888;
+    font-weight: bold;
+}
+
+.friends-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.friend-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid #f0f2f5;
+}
+
+.friend-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.friend-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.friend-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.friend-meta {
+    display: flex;
+    gap: 10px;
+    margin-top: 3px;
+    font-size: 0.8rem;
+    color: #888;
+}
+
+.friend-account {
+    color: #06c755;
+}
+
+.friend-status {
+    font-weight: bold;
+}
+
+.status-active {
+    color: #06c755;
+}
+
+.status-blocked {
+    color: #e53935;
+}
+
+.friend-msgs {
+    color: #999;
+}
+
+.friend-date {
+    font-size: 0.78rem;
+    color: #aaa;
+    flex-shrink: 0;
+}
+
+@media (max-width: 520px) {
+    .friends-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .friends-search input {
+        width: 100%;
+    }
+
+    .friends-count {
+        margin-left: 0;
+    }
+}
+
 /* ─── チャット画面 ──────────────────────────────── */
 
 .chat-bar-inner {
