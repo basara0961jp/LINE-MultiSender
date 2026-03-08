@@ -17,13 +17,18 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Enterキーでトークン追加
-    document.getElementById("tokenInput").addEventListener("keydown", (e) => {
-        if (e.key === "Enter") addAccount();
-    });
+    const tokenInput = document.getElementById("tokenInput");
+    if (tokenInput) {
+        tokenInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") addAccount();
+        });
+    }
 
     // 登録URL表示
-    const registerUrl = `${window.location.origin}/register`;
-    document.getElementById("registerUrl").textContent = registerUrl;
+    const registerUrlEl = document.getElementById("registerUrl");
+    if (registerUrlEl) {
+        registerUrlEl.textContent = `${window.location.origin}/register`;
+    }
 
     // 予約チェック切替
     document.getElementById("scheduleCheck").addEventListener("change", (e) => {
