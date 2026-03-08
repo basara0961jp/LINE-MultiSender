@@ -4,7 +4,6 @@ import uuid
 import hmac
 import hashlib
 import base64
-import sqlite3
 import asyncio
 from datetime import datetime
 from pathlib import Path
@@ -17,6 +16,7 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from apscheduler.schedulers.background import BackgroundScheduler
+from db import get_db, init_db
 
 app = Flask(__name__)
 
@@ -41,130 +41,6 @@ def get_or_create_secret_key():
 app.secret_key = get_or_create_secret_key()
 
 LINE_API_BASE = "https://api.line.me/v2/bot"
-
-# ─── DB初期化 ──────────────────────────────────────────
-
-def init_db():
-    """テーブルを作成し、初期管理者アカウントを登録"""
-    conn = sqlite3.connect(str(DB_PATH))
-    c = conn.cursor()
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            is_admin INTEGER DEFAULT 0,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS accounts (
-            id TEXT PRIMARY KEY,
-            user_id INTEGER NOT NULL,
-            name TEXT NOT NULL,
-            token TEXT NOT NULL,
-            basic_id TEXT DEFAULT '',
-            max_friends INTEGER DEFAULT 500,
-            friend_count INTEGER DEFAULT 0,
-            channel_secret TEXT DEFAULT '',
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )
-    """)
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS schedules (
-            id TEXT PRIMARY KEY,
-            user_id INTEGER NOT NULL,
-            account_ids TEXT NOT NULL,
-            message TEXT NOT NULL,
-            mode TEXT DEFAULT 'broadcast',
-            user_ids TEXT DEFAULT '[]',
-            scheduled_at TEXT NOT NULL,
-            status TEXT DEFAULT 'pending',
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )
-    """)
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS line_friends (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            account_id TEXT NOT NULL,
-            line_user_id TEXT NOT NULL,
-            display_name TEXT DEFAULT '',
-            picture_url TEXT DEFAULT '',
-            status TEXT DEFAULT 'active',
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (account_id) REFERENCES accounts(id),
-            UNIQUE(account_id, line_user_id)
-        )
-    """)
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS chat_messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            account_id TEXT NOT NULL,
-            line_user_id TEXT NOT NULL,
-            direction TEXT NOT NULL,
-            message_text TEXT NOT NULL,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (account_id) REFERENCES accounts(id)
-        )
-    """)
-    c.execute("""
-        CREATE INDEX IF NOT EXISTS idx_chat_messages_lookup
-            ON chat_messages(account_id, line_user_id, created_at)
-    """)
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS chat_read_status (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            account_id TEXT NOT NULL,
-            line_user_id TEXT NOT NULL,
-            last_read_id INTEGER DEFAULT 0,
-            FOREIGN KEY (account_id) REFERENCES accounts(id),
-            UNIQUE(account_id, line_user_id)
-        )
-    """)
-
-    # must_change_password カラム追加（既存DBの移行対応）
-    try:
-        c.execute("ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0")
-    except sqlite3.OperationalError:
-        pass
-
-    # chat_messages: message_type カラム追加
-    try:
-        c.execute("ALTER TABLE chat_messages ADD COLUMN message_type TEXT DEFAULT 'text'")
-    except sqlite3.OperationalError:
-        pass
-
-    # chat_messages: media_url カラム追加
-    try:
-        c.execute("ALTER TABLE chat_messages ADD COLUMN media_url TEXT DEFAULT ''")
-    except sqlite3.OperationalError:
-        pass
-
-    # schedules: image_url カラム追加
-    try:
-        c.execute("ALTER TABLE schedules ADD COLUMN image_url TEXT DEFAULT ''")
-    except sqlite3.OperationalError:
-        pass
-
-    # 初期管理者アカウント
-    c.execute("SELECT COUNT(*) FROM users")
-    if c.fetchone()[0] == 0:
-        c.execute(
-            "INSERT INTO users (email, password_hash, is_admin, must_change_password) VALUES (?, ?, 1, 1)",
-            ("admin@admin", generate_password_hash("admin")),
-        )
-        print("[INFO] 初期管理者アカウントを作成しました (admin@admin / admin)")
-    conn.commit()
-    conn.close()
-
-
-def get_db():
-    conn = sqlite3.connect(str(DB_PATH))
-    conn.row_factory = sqlite3.Row
-    return conn
 
 
 # ─── 既存データの自動移行 ─────────────────────────────────
@@ -701,16 +577,16 @@ def add_user():
 
     conn = get_db()
     try:
-        conn.execute(
+        user_id = conn.insert_returning_id(
             "INSERT INTO users (email, password_hash, is_admin, must_change_password) VALUES (?, ?, ?, 1)",
             (email, generate_password_hash(password), is_admin),
         )
         conn.commit()
-    except sqlite3.IntegrityError:
+    except Exception as e:
         conn.close()
-        return jsonify({"error": "このメールアドレスは既に登録されています"}), 400
-
-    user_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+        if "unique" in str(e).lower() or "duplicate" in str(e).lower() or "integrity" in str(e).lower():
+            return jsonify({"error": "このメールアドレスは既に登録されています"}), 400
+        raise
     conn.close()
     return jsonify({"success": True, "id": user_id}), 201
 
@@ -985,7 +861,7 @@ def _upsert_friend(conn, account_id, token, line_user_id):
         pass
 
     conn.execute(
-        "INSERT OR IGNORE INTO line_friends (account_id, line_user_id, display_name, picture_url) VALUES (?, ?, ?, ?)",
+        "INSERT INTO line_friends (account_id, line_user_id, display_name, picture_url) VALUES (?, ?, ?, ?) ON CONFLICT (account_id, line_user_id) DO NOTHING",
         (account_id, line_user_id, display_name, picture_url),
     )
 
@@ -1419,12 +1295,11 @@ def chat_send():
         return jsonify({"error": f"送信失敗: {err}"}), 500
 
     # DB保存
-    conn.execute(
+    msg_id = conn.insert_returning_id(
         "INSERT INTO chat_messages (account_id, line_user_id, direction, message_text) VALUES (?, ?, 'outgoing', ?)",
         (account_id, line_user_id, text),
     )
     conn.commit()
-    msg_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
     conn.close()
 
     return jsonify({"success": True, "messageId": msg_id})
@@ -1455,7 +1330,7 @@ def chat_mark_read():
         INSERT INTO chat_read_status (account_id, line_user_id, last_read_id)
         VALUES (?, ?, ?)
         ON CONFLICT(account_id, line_user_id)
-        DO UPDATE SET last_read_id = MAX(last_read_id, excluded.last_read_id)
+        DO UPDATE SET last_read_id = CASE WHEN excluded.last_read_id > chat_read_status.last_read_id THEN excluded.last_read_id ELSE chat_read_status.last_read_id END
     """, (account_id, line_user_id, last_read_id))
     conn.commit()
     conn.close()
@@ -1573,12 +1448,10 @@ def chat_send_image():
         return jsonify({"error": f"送信失敗: {err}"}), 500
 
     # DB保存
-    conn.execute(
+    msg_id = conn.insert_returning_id(
         "INSERT INTO chat_messages (account_id, line_user_id, direction, message_text, message_type, media_url) VALUES (?, ?, 'outgoing', '[画像]', 'image', ?)",
         (account_id, line_user_id, f"/uploads/{filename}"),
     )
-    conn.commit()
-    msg_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
     conn.close()
 
     return jsonify({"success": True, "messageId": msg_id, "mediaUrl": f"/uploads/{filename}"})

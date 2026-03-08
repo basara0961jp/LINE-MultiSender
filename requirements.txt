@@ -5,3 +5,4 @@ requests
 APScheduler
 waitress
 werkzeug
+psycopg2-binary
