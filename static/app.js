@@ -12,9 +12,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // 文字数カウント
-    document.getElementById("messageInput").addEventListener("input", (e) => {
-        document.getElementById("charCount").textContent = e.target.value.length;
-    });
+    const messageInput = document.getElementById("messageInput");
+    if (messageInput) {
+        messageInput.addEventListener("input", (e) => {
+            document.getElementById("charCount").textContent = e.target.value.length;
+        });
+    }
 
     // Enterキーでトークン追加
     const tokenInput = document.getElementById("tokenInput");
@@ -31,10 +34,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // 予約チェック切替
-    document.getElementById("scheduleCheck").addEventListener("change", (e) => {
-        document.getElementById("scheduleInput").classList.toggle("hidden", !e.target.checked);
-        document.getElementById("sendBtn").textContent = e.target.checked ? "予約" : "送信";
-    });
+    const scheduleCheck = document.getElementById("scheduleCheck");
+    if (scheduleCheck) {
+        scheduleCheck.addEventListener("change", (e) => {
+            document.getElementById("scheduleInput").classList.toggle("hidden", !e.target.checked);
+            document.getElementById("sendBtn").textContent = e.target.checked ? "予約" : "送信";
+        });
+    }
 });
 
 // ─── アカウント一覧 ───────────────────────────────────
@@ -431,6 +437,7 @@ async function loadSchedules() {
 function renderSchedules(schedules) {
     const section = document.getElementById("scheduleSection");
     const list = document.getElementById("scheduleList");
+    if (!section || !list) return;
 
     if (schedules.length === 0) {
         section.classList.add("hidden");
