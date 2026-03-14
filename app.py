@@ -5,7 +5,7 @@ import hmac
 import hashlib
 import base64
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from functools import wraps
 
@@ -916,6 +916,7 @@ def webhook(account_id):
             friend_count += 1
             if user_id:
                 _upsert_friend(conn, account_id, token, user_id)
+                _start_step_subscriptions(conn, account_id, user_id)
         elif event_type == "unfollow":
             friend_count = max(0, friend_count - 1)
             if user_id:
@@ -1492,6 +1493,369 @@ def chat_unread_count():
     conn.close()
 
     return jsonify({"count": row["cnt"] if row else 0})
+
+
+# ─── ステップ配信 ─────────────────────────────────────────
+
+@app.route("/step")
+@login_required
+def step_page():
+    return render_template("step.html")
+
+
+@app.route("/api/step/scenarios", methods=["GET"])
+@login_required
+def step_scenarios_list():
+    account_id = request.args.get("account_id", "")
+    conn = get_db()
+    if account_id:
+        rows = conn.fetchall(
+            "SELECT * FROM step_scenarios WHERE account_id = ? AND user_id = ? ORDER BY created_at DESC",
+            (account_id, current_user.id),
+        )
+    else:
+        rows = conn.fetchall(
+            "SELECT * FROM step_scenarios WHERE user_id = ? ORDER BY created_at DESC",
+            (current_user.id,),
+        )
+    conn.close()
+    return jsonify([{
+        "id": r["id"], "accountId": r["account_id"], "name": r["name"],
+        "isActive": r["is_active"], "autoStart": r["auto_start"], "createdAt": r["created_at"],
+    } for r in rows])
+
+
+@app.route("/api/step/scenarios", methods=["POST"])
+@login_required
+def step_scenario_create():
+    data = request.get_json()
+    account_id = data.get("accountId", "")
+    name = data.get("name", "").strip()
+    if not account_id or not name:
+        return jsonify({"error": "アカウントとシナリオ名は必須です"}), 400
+
+    conn = get_db()
+    acc = conn.fetchone("SELECT id FROM accounts WHERE id = ? AND user_id = ?", (account_id, current_user.id))
+    if not acc:
+        conn.close()
+        return jsonify({"error": "アカウントが見つかりません"}), 404
+
+    scenario_id = uuid.uuid4().hex
+    conn.execute(
+        "INSERT INTO step_scenarios (id, account_id, user_id, name) VALUES (?, ?, ?, ?)",
+        (scenario_id, account_id, current_user.id, name),
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({"id": scenario_id, "name": name})
+
+
+@app.route("/api/step/scenarios/<scenario_id>", methods=["PUT"])
+@login_required
+def step_scenario_update(scenario_id):
+    data = request.get_json()
+    conn = get_db()
+    row = conn.fetchone("SELECT id FROM step_scenarios WHERE id = ? AND user_id = ?", (scenario_id, current_user.id))
+    if not row:
+        conn.close()
+        return jsonify({"error": "シナリオが見つかりません"}), 404
+
+    if "name" in data:
+        conn.execute("UPDATE step_scenarios SET name = ? WHERE id = ?", (data["name"], scenario_id))
+    if "isActive" in data:
+        conn.execute("UPDATE step_scenarios SET is_active = ? WHERE id = ?", (1 if data["isActive"] else 0, scenario_id))
+    if "autoStart" in data:
+        conn.execute("UPDATE step_scenarios SET auto_start = ? WHERE id = ?", (1 if data["autoStart"] else 0, scenario_id))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
+
+
+@app.route("/api/step/scenarios/<scenario_id>", methods=["DELETE"])
+@login_required
+def step_scenario_delete(scenario_id):
+    conn = get_db()
+    row = conn.fetchone("SELECT id FROM step_scenarios WHERE id = ? AND user_id = ?", (scenario_id, current_user.id))
+    if not row:
+        conn.close()
+        return jsonify({"error": "シナリオが見つかりません"}), 404
+
+    conn.execute("DELETE FROM step_subscriptions WHERE scenario_id = ?", (scenario_id,))
+    conn.execute("DELETE FROM step_messages WHERE scenario_id = ?", (scenario_id,))
+    conn.execute("DELETE FROM step_scenarios WHERE id = ?", (scenario_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
+
+
+@app.route("/api/step/scenarios/<scenario_id>/messages", methods=["GET"])
+@login_required
+def step_messages_list(scenario_id):
+    conn = get_db()
+    row = conn.fetchone("SELECT id FROM step_scenarios WHERE id = ? AND user_id = ?", (scenario_id, current_user.id))
+    if not row:
+        conn.close()
+        return jsonify({"error": "シナリオが見つかりません"}), 404
+
+    rows = conn.fetchall(
+        "SELECT * FROM step_messages WHERE scenario_id = ? ORDER BY step_number ASC",
+        (scenario_id,),
+    )
+    conn.close()
+    return jsonify([{
+        "id": r["id"], "stepNumber": r["step_number"], "delayMinutes": r["delay_minutes"],
+        "messageText": r["message_text"], "imageUrl": r["image_url"],
+    } for r in rows])
+
+
+@app.route("/api/step/scenarios/<scenario_id>/messages", methods=["POST"])
+@login_required
+def step_message_create(scenario_id):
+    data = request.get_json()
+    conn = get_db()
+    row = conn.fetchone("SELECT id FROM step_scenarios WHERE id = ? AND user_id = ?", (scenario_id, current_user.id))
+    if not row:
+        conn.close()
+        return jsonify({"error": "シナリオが見つかりません"}), 404
+
+    step_number = data.get("stepNumber", 1)
+    delay_minutes = data.get("delayMinutes", 0)
+    message_text = data.get("messageText", "")
+    image_url = data.get("imageUrl", "")
+
+    msg_id = conn.insert_returning_id(
+        "INSERT INTO step_messages (scenario_id, step_number, delay_minutes, message_text, image_url) VALUES (?, ?, ?, ?, ?)",
+        (scenario_id, step_number, delay_minutes, message_text, image_url),
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({"id": msg_id, "stepNumber": step_number})
+
+
+@app.route("/api/step/scenarios/<scenario_id>/messages/<int:msg_id>", methods=["PUT"])
+@login_required
+def step_message_update(scenario_id, msg_id):
+    data = request.get_json()
+    conn = get_db()
+    row = conn.fetchone("SELECT id FROM step_scenarios WHERE id = ? AND user_id = ?", (scenario_id, current_user.id))
+    if not row:
+        conn.close()
+        return jsonify({"error": "シナリオが見つかりません"}), 404
+
+    conn.execute(
+        "UPDATE step_messages SET step_number = ?, delay_minutes = ?, message_text = ?, image_url = ? WHERE id = ? AND scenario_id = ?",
+        (data.get("stepNumber", 1), data.get("delayMinutes", 0), data.get("messageText", ""), data.get("imageUrl", ""), msg_id, scenario_id),
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
+
+
+@app.route("/api/step/scenarios/<scenario_id>/messages/<int:msg_id>", methods=["DELETE"])
+@login_required
+def step_message_delete(scenario_id, msg_id):
+    conn = get_db()
+    row = conn.fetchone("SELECT id FROM step_scenarios WHERE id = ? AND user_id = ?", (scenario_id, current_user.id))
+    if not row:
+        conn.close()
+        return jsonify({"error": "シナリオが見つかりません"}), 404
+
+    conn.execute("DELETE FROM step_messages WHERE id = ? AND scenario_id = ?", (msg_id, scenario_id))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
+
+
+@app.route("/api/step/subscriptions", methods=["GET"])
+@login_required
+def step_subscriptions_list():
+    scenario_id = request.args.get("scenario_id", "")
+    if not scenario_id:
+        return jsonify({"error": "scenario_id is required"}), 400
+
+    conn = get_db()
+    row = conn.fetchone("SELECT id FROM step_scenarios WHERE id = ? AND user_id = ?", (scenario_id, current_user.id))
+    if not row:
+        conn.close()
+        return jsonify({"error": "シナリオが見つかりません"}), 404
+
+    subs = conn.fetchall(
+        """SELECT s.*, f.display_name, f.picture_url
+           FROM step_subscriptions s
+           LEFT JOIN line_friends f ON s.account_id = f.account_id AND s.line_user_id = f.line_user_id
+           WHERE s.scenario_id = ?
+           ORDER BY s.created_at DESC""",
+        (scenario_id,),
+    )
+    conn.close()
+    return jsonify([{
+        "id": r["id"], "lineUserId": r["line_user_id"],
+        "displayName": r["display_name"] or r["line_user_id"],
+        "pictureUrl": r["picture_url"] or "",
+        "currentStep": r["current_step"], "status": r["status"],
+        "startedAt": r["started_at"],
+    } for r in subs])
+
+
+@app.route("/api/step/subscriptions/toggle", methods=["POST"])
+@login_required
+def step_subscription_toggle():
+    data = request.get_json()
+    sub_id = data.get("id")
+    conn = get_db()
+    sub = conn.fetchone(
+        """SELECT s.* FROM step_subscriptions s
+           JOIN step_scenarios sc ON s.scenario_id = sc.id
+           WHERE s.id = ? AND sc.user_id = ?""",
+        (sub_id, current_user.id),
+    )
+    if not sub:
+        conn.close()
+        return jsonify({"error": "Not found"}), 404
+
+    new_status = "paused" if sub["status"] == "active" else "active"
+    conn.execute("UPDATE step_subscriptions SET status = ? WHERE id = ?", (new_status, sub_id))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "status": new_status})
+
+
+@app.route("/api/step/subscriptions/start", methods=["POST"])
+@login_required
+def step_subscription_start():
+    data = request.get_json()
+    scenario_id = data.get("scenarioId", "")
+    line_user_id = data.get("lineUserId", "")
+
+    conn = get_db()
+    sc = conn.fetchone("SELECT * FROM step_scenarios WHERE id = ? AND user_id = ?", (scenario_id, current_user.id))
+    if not sc:
+        conn.close()
+        return jsonify({"error": "シナリオが見つかりません"}), 404
+
+    now = datetime.now().isoformat()
+    conn.execute(
+        """INSERT INTO step_subscriptions (scenario_id, account_id, line_user_id, started_at, current_step, status)
+           VALUES (?, ?, ?, ?, 0, 'active')
+           ON CONFLICT(scenario_id, account_id, line_user_id)
+           DO UPDATE SET started_at = ?, current_step = 0, status = 'active'""",
+        (scenario_id, sc["account_id"], line_user_id, now, now),
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
+
+
+@app.route("/api/step/upload-image", methods=["POST"])
+@login_required
+def step_upload_image():
+    file = request.files.get("image")
+    if not file:
+        return jsonify({"error": "画像が必要です"}), 400
+    allowed_ext = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+    ext = os.path.splitext(file.filename)[1].lower() if file.filename else ""
+    if ext not in allowed_ext:
+        return jsonify({"error": "対応形式: JPG, PNG, GIF, WebP"}), 400
+    filename = f"{uuid.uuid4().hex}{ext}"
+    filepath = UPLOAD_DIR / filename
+    file.save(str(filepath))
+    return jsonify({"imageUrl": f"/uploads/{filename}"})
+
+
+def _start_step_subscriptions(conn, account_id, line_user_id):
+    """友だち追加時にauto_start=1のシナリオへサブスクリプション作成"""
+    scenarios = conn.fetchall(
+        "SELECT id FROM step_scenarios WHERE account_id = ? AND is_active = 1 AND auto_start = 1",
+        (account_id,),
+    )
+    now = datetime.now().isoformat()
+    for sc in scenarios:
+        conn.execute(
+            """INSERT INTO step_subscriptions (scenario_id, account_id, line_user_id, started_at, current_step, status)
+               VALUES (?, ?, ?, ?, 0, 'active')
+               ON CONFLICT(scenario_id, account_id, line_user_id) DO NOTHING""",
+            (sc["id"], account_id, line_user_id, now),
+        )
+
+
+def process_step_deliveries():
+    """ステップ配信の自動送信ジョブ（60秒間隔で実行）"""
+    conn = get_db()
+    try:
+        subs = conn.fetchall("SELECT * FROM step_subscriptions WHERE status = 'active'")
+        now = datetime.now()
+
+        for sub in subs:
+            scenario_id = sub["scenario_id"]
+            current_step = sub["current_step"]
+
+            # 次のステップを取得
+            next_msg = conn.fetchone(
+                "SELECT * FROM step_messages WHERE scenario_id = ? AND step_number > ? ORDER BY step_number ASC LIMIT 1",
+                (scenario_id, current_step),
+            )
+            if not next_msg:
+                conn.execute("UPDATE step_subscriptions SET status = 'completed' WHERE id = ?", (sub["id"],))
+                continue
+
+            # 送信時刻チェック
+            started_at = datetime.fromisoformat(sub["started_at"])
+            send_time = started_at + timedelta(minutes=next_msg["delay_minutes"])
+            if now < send_time:
+                continue
+
+            # アカウントのトークン取得
+            acc = conn.fetchone("SELECT token FROM accounts WHERE id = ?", (sub["account_id"],))
+            if not acc:
+                continue
+
+            # メッセージ構築
+            messages = []
+            if next_msg["image_url"]:
+                public_url = get_public_url() or ""
+                full_url = f"{public_url}{next_msg['image_url']}" if public_url else next_msg["image_url"]
+                messages.append(build_flex_image_message(full_url, next_msg["message_text"] or ""))
+            elif next_msg["message_text"]:
+                messages.append({"type": "text", "text": next_msg["message_text"]})
+
+            if not messages:
+                # 空メッセージはスキップしてステップ進行
+                conn.execute("UPDATE step_subscriptions SET current_step = ? WHERE id = ?",
+                             (next_msg["step_number"], sub["id"]))
+                continue
+
+            # LINE Push Message API
+            try:
+                resp = requests.post(
+                    f"{LINE_API_BASE}/message/push",
+                    headers={
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {acc['token']}",
+                    },
+                    json={
+                        "to": sub["line_user_id"],
+                        "messages": messages,
+                    },
+                    timeout=10,
+                )
+                if resp.status_code == 200:
+                    conn.execute("UPDATE step_subscriptions SET current_step = ? WHERE id = ?",
+                                 (next_msg["step_number"], sub["id"]))
+                else:
+                    print(f"[STEP] 送信失敗: sub={sub['id']} step={next_msg['step_number']} status={resp.status_code}")
+            except Exception as e:
+                print(f"[STEP] 送信エラー: sub={sub['id']} {e}")
+
+        conn.commit()
+    except Exception as e:
+        print(f"[STEP] ジョブエラー: {e}")
+    finally:
+        conn.close()
+
+
+# ステップ配信ジョブをスケジューラに登録
+if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not app.debug:
+    scheduler.add_job(process_step_deliveries, "interval", seconds=60, id="step_delivery", replace_existing=True)
 
 
 if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not app.debug:

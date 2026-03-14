@@ -1469,6 +1469,188 @@ textarea:focus {
     cursor: not-allowed;
 }
 
+/* ─── ステップ配信 ──────────────────────────────── */
+
+#stepAccountSelect,
+#subsScenarioSelect,
+#manualFriendSelect {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    background: #fff;
+}
+
+#stepAccountSelect:focus,
+#subsScenarioSelect:focus,
+#manualFriendSelect:focus {
+    outline: none;
+    border-color: #06c755;
+}
+
+.step-create-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.step-create-row input[type="text"] {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.step-create-row input[type="text"]:focus {
+    outline: none;
+    border-color: #06c755;
+}
+
+.step-scenario-item {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+}
+
+.step-scenario-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.step-scenario-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.step-scenario-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.step-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.82rem;
+    color: #666;
+    cursor: pointer;
+}
+
+.step-toggle-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #06c755;
+}
+
+.step-msg-card {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-left: 4px solid #06c755;
+}
+
+.step-msg-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.step-msg-num {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #06c755;
+}
+
+.step-msg-delay {
+    font-size: 0.82rem;
+    color: #888;
+    margin-left: auto;
+}
+
+.step-msg-body textarea {
+    width: 100%;
+    margin-top: 8px;
+}
+
+.step-delay-input {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: #555;
+}
+
+.step-delay-input input[type="number"] {
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+.step-delay-input input[type="number"]:focus {
+    outline: none;
+    border-color: #06c755;
+}
+
+.step-delay-hint {
+    color: #999;
+    font-size: 0.8rem;
+}
+
+.step-img-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+.step-img-preview {
+    max-height: 50px;
+    max-width: 80px;
+    border-radius: 4px;
+    object-fit: cover;
+    border: 1px solid #ddd;
+}
+
+.step-add-row {
+    margin-top: 8px;
+}
+
+.step-sub-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f2f5;
+}
+
+.step-sub-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.step-sub-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: block;
+}
+
+.step-sub-meta {
+    font-size: 0.8rem;
+    color: #888;
+}
+
 /* モバイル対応 */
 @media (max-width: 520px) {
     .chat-sidebar {

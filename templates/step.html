@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ステップ配信 - LINE 一斉配信</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="user-bar">
+        <div class="user-bar-inner">
+            <span class="user-email">{{ current_user.email }}</span>
+            <div class="user-bar-links">
+                <a href="/">配信</a>
+                <a href="/accounts">アカウント管理</a>
+                <a href="/friends">友だち一覧</a>
+                {% if current_user.is_admin %}
+                <a href="/admin">管理画面</a>
+                {% endif %}
+                <a href="/chat" id="chatNavLink">チャット</a>
+                <a href="/step" class="active-link">ステップ配信</a>
+                <a href="/logout">ログアウト</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>ステップ配信</h1>
+
+        <!-- アカウント選択 -->
+        <section class="section">
+            <h2>アカウント選択</h2>
+            <select id="stepAccountSelect" onchange="loadScenarios()">
+                <option value="">-- アカウントを選択 --</option>
+            </select>
+        </section>
+
+        <!-- シナリオ一覧 -->
+        <section class="section" id="scenarioSection" style="display:none">
+            <h2>シナリオ一覧</h2>
+            <div class="step-create-row">
+                <input type="text" id="newScenarioName" placeholder="新しいシナリオ名">
+                <button class="send-btn" style="width:auto;padding:10px 20px" onclick="createScenario()">作成</button>
+            </div>
+            <div id="scenarioList"></div>
+        </section>
+
+        <!-- シナリオ編集 -->
+        <section class="section" id="editSection" style="display:none">
+            <h2 id="editScenarioTitle">シナリオ編集</h2>
+            <div id="stepMessageList"></div>
+            <div class="step-add-row">
+                <button class="send-btn" style="width:auto;padding:10px 20px" onclick="addStepMessage()">+ ステップ追加</button>
+            </div>
+        </section>
+
+        <!-- 配信状況 -->
+        <section class="section" id="subsSection" style="display:none">
+            <h2>配信状況</h2>
+            <div class="step-create-row">
+                <select id="subsScenarioSelect" onchange="loadSubscriptions()">
+                    <option value="">-- シナリオを選択 --</option>
+                </select>
+            </div>
+
+            <!-- 手動開始 -->
+            <div id="manualStartArea" style="display:none;margin-top:12px">
+                <h3 style="font-size:0.95rem;color:#555;margin-bottom:8px">手動で配信開始</h3>
+                <div class="step-create-row">
+                    <select id="manualFriendSelect">
+                        <option value="">-- 友だちを選択 --</option>
+                    </select>
+                    <button class="send-btn" style="width:auto;padding:10px 20px" onclick="manualStart()">開始</button>
+                </div>
+            </div>
+
+            <div id="subsList" style="margin-top:12px"></div>
+        </section>
+    </div>
+
+    <script src="/static/step.js"></script>
+</body>
+</html>

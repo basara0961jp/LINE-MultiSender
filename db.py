@@ -199,6 +199,47 @@ def _init_sqlite():
         )
     """)
 
+    # ステップ配信テーブル
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS step_scenarios (
+            id TEXT PRIMARY KEY,
+            account_id TEXT NOT NULL,
+            user_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            is_active INTEGER DEFAULT 1,
+            auto_start INTEGER DEFAULT 1,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (account_id) REFERENCES accounts(id),
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    """)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS step_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            scenario_id TEXT NOT NULL,
+            step_number INTEGER NOT NULL,
+            delay_minutes INTEGER NOT NULL DEFAULT 0,
+            message_text TEXT DEFAULT '',
+            image_url TEXT DEFAULT '',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (scenario_id) REFERENCES step_scenarios(id)
+        )
+    """)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS step_subscriptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            scenario_id TEXT NOT NULL,
+            account_id TEXT NOT NULL,
+            line_user_id TEXT NOT NULL,
+            started_at TEXT NOT NULL,
+            current_step INTEGER DEFAULT 0,
+            status TEXT DEFAULT 'active',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (scenario_id) REFERENCES step_scenarios(id),
+            UNIQUE(scenario_id, account_id, line_user_id)
+        )
+    """)
+
     # 既存DB移行用のALTER TABLE
     for stmt in [
         "ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0",
@@ -303,6 +344,43 @@ def _init_pg():
             line_user_id TEXT NOT NULL,
             last_read_id INTEGER DEFAULT 0,
             UNIQUE(account_id, line_user_id)
+        )
+    """)
+
+    # ステップ配信テーブル
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS step_scenarios (
+            id TEXT PRIMARY KEY,
+            account_id TEXT NOT NULL REFERENCES accounts(id),
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            name TEXT NOT NULL,
+            is_active INTEGER DEFAULT 1,
+            auto_start INTEGER DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS step_messages (
+            id SERIAL PRIMARY KEY,
+            scenario_id TEXT NOT NULL REFERENCES step_scenarios(id),
+            step_number INTEGER NOT NULL,
+            delay_minutes INTEGER NOT NULL DEFAULT 0,
+            message_text TEXT DEFAULT '',
+            image_url TEXT DEFAULT '',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS step_subscriptions (
+            id SERIAL PRIMARY KEY,
+            scenario_id TEXT NOT NULL REFERENCES step_scenarios(id),
+            account_id TEXT NOT NULL,
+            line_user_id TEXT NOT NULL,
+            started_at TEXT NOT NULL,
+            current_step INTEGER DEFAULT 0,
+            status TEXT DEFAULT 'active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(scenario_id, account_id, line_user_id)
         )
     """)
 
