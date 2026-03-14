@@ -69,7 +69,7 @@ function renderConversations() {
                     <span class="conv-last">${lastMsg}</span>
                     ${unread}
                 </div>
-                <span class="conv-bot">${escapeHtml(c.accountName)}</span>
+                <span class="conv-bot">${escapeHtml(c.accountName)}${c.apiStatus === 'banned' ? ' <span style="background:#e65100;color:#fff;padding:0 5px;border-radius:3px;font-size:0.65rem">垢BAN</span>' : ''}</span>
             </div>
         </div>`;
     }
@@ -88,12 +88,14 @@ async function selectConversation(accountId, lineUserId) {
         displayName: conv.displayName,
         pictureUrl: conv.pictureUrl,
         accountName: conv.accountName,
+        apiStatus: conv.apiStatus || 'active',
     };
     lastMessageId = 0;
 
     // ヘッダー更新
     document.getElementById('chatHeaderName').textContent = conv.displayName;
-    document.getElementById('chatHeaderBot').textContent = conv.accountName;
+    const botLabel = conv.apiStatus === 'banned' ? conv.accountName + ' [垢BAN]' : conv.accountName;
+    document.getElementById('chatHeaderBot').textContent = botLabel;
     const avatar = document.getElementById('chatHeaderAvatar');
     avatar.src = conv.pictureUrl || defaultAvatar();
     avatar.onerror = function() { this.src = defaultAvatar(); };

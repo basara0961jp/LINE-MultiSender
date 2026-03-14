@@ -246,6 +246,7 @@ def _init_sqlite():
         "ALTER TABLE chat_messages ADD COLUMN message_type TEXT DEFAULT 'text'",
         "ALTER TABLE chat_messages ADD COLUMN media_url TEXT DEFAULT ''",
         "ALTER TABLE schedules ADD COLUMN image_url TEXT DEFAULT ''",
+        "ALTER TABLE accounts ADD COLUMN api_status TEXT DEFAULT 'active'",
     ]:
         try:
             c.execute(stmt)

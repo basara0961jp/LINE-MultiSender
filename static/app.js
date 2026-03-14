@@ -85,10 +85,11 @@ function renderAccounts(accounts) {
             const color = getProgressColor(pct);
             const webhookUrl = `${baseUrl}/webhook/${acc.id}`;
 
+            const banBadge = acc.apiStatus === 'banned' ? ' <span style="background:#e65100;color:#fff;padding:1px 6px;border-radius:4px;font-size:0.7rem">垢BAN</span>' : '';
             return `
-            <div class="account-item" data-id="${acc.id}">
+            <div class="account-item" data-id="${acc.id}" ${acc.apiStatus === 'banned' ? 'style="border-left:4px solid #e65100"' : ''}>
                 <div class="account-header">
-                    <span class="name">${escapeHtml(acc.name)}</span>
+                    <span class="name">${escapeHtml(acc.name)}${banBadge}</span>
                     <button class="action-btn" onclick="refreshFriendCount('${acc.id}')" title="友だち数を更新">&#8635;</button>
                     <button class="action-btn" onclick="openEditModal('${acc.id}', ${acc.maxFriends})" title="設定">&#9881;</button>
                     <button class="delete-btn" onclick="deleteAccount('${acc.id}')" title="削除">&#10005;</button>
@@ -113,11 +114,12 @@ function renderAccounts(accounts) {
         // 配信ページ: チェックボックス + 名前のみ
         list.innerHTML = accounts.map(acc => {
             const pct = acc.maxFriends > 0 ? Math.min(100, Math.round(acc.friendCount / acc.maxFriends * 100)) : 0;
+            const banBadge = acc.apiStatus === 'banned' ? ' <span style="background:#e65100;color:#fff;padding:1px 6px;border-radius:4px;font-size:0.7rem">垢BAN</span>' : '';
             return `
             <div class="account-item" data-id="${acc.id}">
                 <div class="account-header">
-                    <input type="checkbox" checked>
-                    <span class="name">${escapeHtml(acc.name)}</span>
+                    <input type="checkbox" ${acc.apiStatus === 'banned' ? '' : 'checked'}>
+                    <span class="name">${escapeHtml(acc.name)}${banBadge}</span>
                     <span class="friend-count-badge">${acc.friendCount}人</span>
                 </div>
             </div>`;
@@ -397,6 +399,15 @@ function showResults(results) {
                     <div class="detail">
                         <div class="name">${escapeHtml(r.name)}</div>
                         <div class="msg">送信成功</div>
+                    </div>
+                </div>`;
+        } else if (r.banned) {
+            return `
+                <div class="result-item error" style="background:#fff3e0;color:#e65100;border-left:4px solid #e65100">
+                    <span class="icon" style="font-size:1.5rem">&#9888;</span>
+                    <div class="detail">
+                        <div class="name">${escapeHtml(r.name)} <span style="background:#e65100;color:#fff;padding:2px 8px;border-radius:4px;font-size:0.75rem;margin-left:6px">垢BAN</span></div>
+                        <div class="msg">このアカウントはBANされています。メッセージは送信されていません。</div>
                     </div>
                 </div>`;
         } else {

@@ -459,7 +459,21 @@ async def send_all(accounts, messages, mode, user_ids=None):
                         result["error"] = json.loads(body).get("message", body)
                     except json.JSONDecodeError:
                         result["error"] = body
+                    if status == 403:
+                        result["banned"] = True
                 results.append(result)
+
+    # 403を返したアカウントをBAN済みにマーク
+    banned_ids = [r["id"] for r in results if r.get("banned")]
+    if banned_ids:
+        try:
+            conn = get_db()
+            for bid in banned_ids:
+                conn.execute("UPDATE accounts SET api_status = 'banned' WHERE id = ?", (bid,))
+            conn.commit()
+            conn.close()
+        except Exception:
+            pass
 
     return results
 
@@ -720,6 +734,7 @@ def get_accounts():
 
     safe = []
     for a in rows:
+        api_status = a["api_status"] if "api_status" in a.keys() else "active"
         safe.append({
             "id": a["id"],
             "name": a["name"],
@@ -727,6 +742,7 @@ def get_accounts():
             "maxFriends": a["max_friends"],
             "friendCount": a["friend_count"],
             "hasSecret": bool(a["channel_secret"]),
+            "apiStatus": api_status,
         })
     return jsonify(safe)
 
@@ -1184,9 +1200,15 @@ def chat_conversations():
     conn = get_db()
     # ユーザーが所有するアカウントIDを取得
     account_rows = conn.execute(
-        "SELECT id, name FROM accounts WHERE user_id = ?", (current_user.id,)
+        "SELECT id, name, api_status FROM accounts WHERE user_id = ?", (current_user.id,)
     ).fetchall()
     account_map = {r["id"]: r["name"] for r in account_rows}
+    account_status_map = {}
+    for r in account_rows:
+        try:
+            account_status_map[r["id"]] = r["api_status"] or "active"
+        except (KeyError, IndexError):
+            account_status_map[r["id"]] = "active"
 
     if not account_map:
         conn.close()
@@ -1223,6 +1245,7 @@ def chat_conversations():
         result.append({
             "accountId": r["account_id"],
             "accountName": account_map.get(r["account_id"], ""),
+            "apiStatus": account_status_map.get(r["account_id"], "active"),
             "lineUserId": r["line_user_id"],
             "displayName": r["display_name"] or r["line_user_id"][:8],
             "pictureUrl": r["picture_url"] or "",
