@@ -81,6 +81,19 @@
             <input type="number" id="editMaxFriends" min="1">
             <label>Channel Secret</label>
             <input type="text" id="editChannelSecret" placeholder="未設定">
+            <hr style="margin:12px 0;border:none;border-top:1px solid #e0e0e0">
+            <h4 style="margin:0 0 8px">あいさつメッセージ</h4>
+            <p style="font-size:0.8rem;color:#888;margin:0 0 8px">友だち追加時に自動送信されます（空欄で無効）</p>
+            <label>メッセージ</label>
+            <textarea id="editGreetingMessage" rows="3" placeholder="友だち追加ありがとうございます！" style="width:100%;resize:vertical;font-family:inherit;padding:8px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box"></textarea>
+            <label>画像（任意）</label>
+            <div style="display:flex;gap:6px;align-items:center">
+                <input type="file" id="editGreetingImageFile" accept="image/*" onchange="handleGreetingImage(event)" style="flex:1">
+                <button type="button" onclick="cancelGreetingImage()" style="font-size:0.8rem;padding:4px 8px;cursor:pointer;display:none" id="cancelGreetingImgBtn">取消</button>
+            </div>
+            <div id="greetingImagePreview" style="margin-top:6px;display:none">
+                <img id="greetingPreviewImg" style="max-width:100%;max-height:120px;border-radius:6px">
+            </div>
             <div class="modal-actions">
                 <button class="modal-cancel" onclick="closeEditModal()">キャンセル</button>
                 <button class="modal-save" onclick="saveAccountSettings()">保存</button>

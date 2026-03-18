@@ -247,6 +247,8 @@ def _init_sqlite():
         "ALTER TABLE chat_messages ADD COLUMN media_url TEXT DEFAULT ''",
         "ALTER TABLE schedules ADD COLUMN image_url TEXT DEFAULT ''",
         "ALTER TABLE accounts ADD COLUMN api_status TEXT DEFAULT 'active'",
+        "ALTER TABLE accounts ADD COLUMN greeting_message TEXT DEFAULT ''",
+        "ALTER TABLE accounts ADD COLUMN greeting_image_url TEXT DEFAULT ''",
     ]:
         try:
             c.execute(stmt)
@@ -292,9 +294,24 @@ def _init_pg():
             max_friends INTEGER DEFAULT 500,
             friend_count INTEGER DEFAULT 0,
             channel_secret TEXT DEFAULT '',
+            api_status TEXT DEFAULT 'active',
+            greeting_message TEXT DEFAULT '',
+            greeting_image_url TEXT DEFAULT '',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+
+    # PG既存DB移行用
+    for stmt in [
+        "ALTER TABLE accounts ADD COLUMN api_status TEXT DEFAULT 'active'",
+        "ALTER TABLE accounts ADD COLUMN greeting_message TEXT DEFAULT ''",
+        "ALTER TABLE accounts ADD COLUMN greeting_image_url TEXT DEFAULT ''",
+    ]:
+        try:
+            c.execute(stmt)
+        except Exception:
+            conn.rollback()
+
     c.execute("""
         CREATE TABLE IF NOT EXISTS schedules (
             id TEXT PRIMARY KEY,

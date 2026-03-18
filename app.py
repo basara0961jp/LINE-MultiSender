@@ -735,6 +735,8 @@ def get_accounts():
     safe = []
     for a in rows:
         api_status = a["api_status"] if "api_status" in a.keys() else "active"
+        greeting_message = a["greeting_message"] if "greeting_message" in a.keys() else ""
+        greeting_image_url = a["greeting_image_url"] if "greeting_image_url" in a.keys() else ""
         safe.append({
             "id": a["id"],
             "name": a["name"],
@@ -743,6 +745,8 @@ def get_accounts():
             "friendCount": a["friend_count"],
             "hasSecret": bool(a["channel_secret"]),
             "apiStatus": api_status,
+            "greetingMessage": greeting_message,
+            "greetingImageUrl": greeting_image_url,
         })
     return jsonify(safe)
 
@@ -820,6 +824,12 @@ def update_account(account_id):
     if "channelSecret" in data:
         conn.execute("UPDATE accounts SET channel_secret = ? WHERE id = ? AND user_id = ?",
                      (data["channelSecret"].strip(), account_id, current_user.id))
+    if "greetingMessage" in data:
+        conn.execute("UPDATE accounts SET greeting_message = ? WHERE id = ? AND user_id = ?",
+                     (data["greetingMessage"], account_id, current_user.id))
+    if "greetingImageUrl" in data:
+        conn.execute("UPDATE accounts SET greeting_image_url = ? WHERE id = ? AND user_id = ?",
+                     (data["greetingImageUrl"], account_id, current_user.id))
 
     conn.commit()
     conn.close()
@@ -892,6 +902,39 @@ def _upsert_friend(conn, account_id, token, line_user_id):
     )
 
 
+def _send_greeting(account, line_user_id):
+    """友だち追加時にあいさつメッセージを送信"""
+    greeting_msg = account["greeting_message"] if "greeting_message" in account.keys() else ""
+    greeting_img = account["greeting_image_url"] if "greeting_image_url" in account.keys() else ""
+    if not greeting_msg and not greeting_img:
+        return
+
+    messages = []
+    if greeting_img:
+        public_url = get_public_url() or ""
+        full_url = f"{public_url}{greeting_img}" if greeting_img.startswith("/") and public_url else greeting_img
+        messages.append(build_flex_image_message(full_url, greeting_msg or ""))
+    elif greeting_msg:
+        messages.append({"type": "text", "text": greeting_msg})
+
+    try:
+        resp = requests.post(
+            f"{LINE_API_BASE}/message/push",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {account['token']}",
+            },
+            json={"to": line_user_id, "messages": messages},
+            timeout=10,
+        )
+        if resp.status_code == 200:
+            print(f"[GREETING] 送信成功: {account['id'][:8]}... → {line_user_id[:8]}...")
+        else:
+            print(f"[GREETING] 送信失敗: status={resp.status_code}")
+    except Exception as e:
+        print(f"[GREETING] 送信エラー: {e}")
+
+
 @app.route("/webhook/<account_id>", methods=["POST"])
 def webhook(account_id):
     """LINE Webhookイベント受信（follow/unfollow/message）"""
@@ -932,6 +975,7 @@ def webhook(account_id):
             friend_count += 1
             if user_id:
                 _upsert_friend(conn, account_id, token, user_id)
+                _send_greeting(target, user_id)
                 _start_step_subscriptions(conn, account_id, user_id)
         elif event_type == "unfollow":
             friend_count = max(0, friend_count - 1)
