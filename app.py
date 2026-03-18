@@ -968,7 +968,6 @@ def webhook(account_id):
             if user_id:
                 _upsert_friend(conn, account_id, token, user_id)
                 _send_greeting(conn, token, user_id)
-                _start_step_subscriptions(conn, account_id, user_id)
         elif event_type == "unfollow":
             friend_count = max(0, friend_count - 1)
             if user_id:
@@ -1596,22 +1595,15 @@ def step_page():
 @app.route("/api/step/scenarios", methods=["GET"])
 @login_required
 def step_scenarios_list():
-    account_id = request.args.get("account_id", "")
     conn = get_db()
-    if account_id:
-        rows = conn.fetchall(
-            "SELECT * FROM step_scenarios WHERE account_id = ? AND user_id = ? ORDER BY created_at DESC",
-            (account_id, current_user.id),
-        )
-    else:
-        rows = conn.fetchall(
-            "SELECT * FROM step_scenarios WHERE user_id = ? ORDER BY created_at DESC",
-            (current_user.id,),
-        )
+    rows = conn.fetchall(
+        "SELECT * FROM step_scenarios WHERE user_id = ? ORDER BY created_at DESC",
+        (current_user.id,),
+    )
     conn.close()
     return jsonify([{
-        "id": r["id"], "accountId": r["account_id"], "name": r["name"],
-        "isActive": r["is_active"], "autoStart": r["auto_start"], "createdAt": r["created_at"],
+        "id": r["id"], "name": r["name"],
+        "isActive": r["is_active"], "createdAt": r["created_at"],
     } for r in rows])
 
 
@@ -1619,21 +1611,15 @@ def step_scenarios_list():
 @login_required
 def step_scenario_create():
     data = request.get_json()
-    account_id = data.get("accountId", "")
     name = data.get("name", "").strip()
-    if not account_id or not name:
-        return jsonify({"error": "アカウントとシナリオ名は必須です"}), 400
+    if not name:
+        return jsonify({"error": "シナリオ名は必須です"}), 400
 
     conn = get_db()
-    acc = conn.fetchone("SELECT id FROM accounts WHERE id = ? AND user_id = ?", (account_id, current_user.id))
-    if not acc:
-        conn.close()
-        return jsonify({"error": "アカウントが見つかりません"}), 404
-
     scenario_id = uuid.uuid4().hex
     conn.execute(
-        "INSERT INTO step_scenarios (id, account_id, user_id, name) VALUES (?, ?, ?, ?)",
-        (scenario_id, account_id, current_user.id, name),
+        "INSERT INTO step_scenarios (id, account_id, user_id, name, auto_start) VALUES (?, '', ?, ?, 0)",
+        (scenario_id, current_user.id, name),
     )
     conn.commit()
     conn.close()
@@ -1770,9 +1756,10 @@ def step_subscriptions_list():
         return jsonify({"error": "シナリオが見つかりません"}), 404
 
     subs = conn.fetchall(
-        """SELECT s.*, f.display_name, f.picture_url
+        """SELECT s.*, f.display_name, f.picture_url, a.name AS account_name
            FROM step_subscriptions s
            LEFT JOIN line_friends f ON s.account_id = f.account_id AND s.line_user_id = f.line_user_id
+           LEFT JOIN accounts a ON s.account_id = a.id
            WHERE s.scenario_id = ?
            ORDER BY s.created_at DESC""",
         (scenario_id,),
@@ -1784,6 +1771,7 @@ def step_subscriptions_list():
         "pictureUrl": r["picture_url"] or "",
         "currentStep": r["current_step"], "status": r["status"],
         "startedAt": r["started_at"],
+        "accountName": r["account_name"] or "",
     } for r in subs])
 
 
@@ -1815,6 +1803,7 @@ def step_subscription_toggle():
 def step_subscription_start():
     data = request.get_json()
     scenario_id = data.get("scenarioId", "")
+    account_id = data.get("accountId", "")
     line_user_id = data.get("lineUserId", "")
 
     conn = get_db()
@@ -1823,13 +1812,17 @@ def step_subscription_start():
         conn.close()
         return jsonify({"error": "シナリオが見つかりません"}), 404
 
+    if not account_id or not line_user_id:
+        conn.close()
+        return jsonify({"error": "友だちを選択してください"}), 400
+
     now = datetime.now().isoformat()
     conn.execute(
         """INSERT INTO step_subscriptions (scenario_id, account_id, line_user_id, started_at, current_step, status)
            VALUES (?, ?, ?, ?, 0, 'active')
            ON CONFLICT(scenario_id, account_id, line_user_id)
            DO UPDATE SET started_at = ?, current_step = 0, status = 'active'""",
-        (scenario_id, sc["account_id"], line_user_id, now, now),
+        (scenario_id, account_id, line_user_id, now, now),
     )
     conn.commit()
     conn.close()
@@ -1850,22 +1843,6 @@ def step_upload_image():
     filepath = UPLOAD_DIR / filename
     file.save(str(filepath))
     return jsonify({"imageUrl": f"/uploads/{filename}"})
-
-
-def _start_step_subscriptions(conn, account_id, line_user_id):
-    """友だち追加時にauto_start=1のシナリオへサブスクリプション作成"""
-    scenarios = conn.fetchall(
-        "SELECT id FROM step_scenarios WHERE account_id = ? AND is_active = 1 AND auto_start = 1",
-        (account_id,),
-    )
-    now = datetime.now().isoformat()
-    for sc in scenarios:
-        conn.execute(
-            """INSERT INTO step_subscriptions (scenario_id, account_id, line_user_id, started_at, current_step, status)
-               VALUES (?, ?, ?, ?, 0, 'active')
-               ON CONFLICT(scenario_id, account_id, line_user_id) DO NOTHING""",
-            (sc["id"], account_id, line_user_id, now),
-        )
 
 
 def process_step_deliveries():

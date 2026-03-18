@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ステップ配信 - LINE 一斉配信</title>
-    <link rel="stylesheet" href="/static/style.css?v=20260318">
+    <link rel="stylesheet" href="/static/style.css?v=20260318c">
 </head>
 <body>
     <div class="user-bar">
@@ -27,17 +27,10 @@
     <div class="container">
         <h1>ステップ配信</h1>
 
-        <!-- アカウント選択 -->
-        <section class="section">
-            <h2>アカウント選択</h2>
-            <select id="stepAccountSelect" onchange="loadScenarios()">
-                <option value="">-- アカウントを選択 --</option>
-            </select>
-        </section>
-
         <!-- シナリオ一覧 -->
-        <section class="section" id="scenarioSection" style="display:none">
+        <section class="section">
             <h2>シナリオ一覧</h2>
+            <p class="hint">シナリオは全アカウント共通です。友だちごとに手動で配信を開始できます。</p>
             <div class="step-create-row">
                 <input type="text" id="newScenarioName" placeholder="新しいシナリオ名">
                 <button class="send-btn" style="width:auto;padding:10px 20px" onclick="createScenario()">作成</button>
@@ -54,9 +47,9 @@
             </div>
         </section>
 
-        <!-- 配信状況 -->
-        <section class="section" id="subsSection" style="display:none">
-            <h2>配信状況</h2>
+        <!-- 配信管理 -->
+        <section class="section">
+            <h2>配信管理</h2>
             <div class="step-create-row">
                 <select id="subsScenarioSelect" onchange="loadSubscriptions()">
                     <option value="">-- シナリオを選択 --</option>
@@ -65,7 +58,7 @@
 
             <!-- 手動開始 -->
             <div id="manualStartArea" style="display:none;margin-top:12px">
-                <h3 style="font-size:0.95rem;color:#555;margin-bottom:8px">手動で配信開始</h3>
+                <h3 style="font-size:0.95rem;color:#555;margin-bottom:8px">配信開始する友だちを選択</h3>
                 <div class="step-create-row">
                     <select id="manualFriendSelect">
                         <option value="">-- 友だちを選択 --</option>
@@ -78,6 +71,6 @@
         </section>
     </div>
 
-    <script src="/static/step.js?v=20260318"></script>
+    <script src="/static/step.js?v=20260318c"></script>
 </body>
 </html>
