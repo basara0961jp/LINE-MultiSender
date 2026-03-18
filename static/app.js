@@ -63,7 +63,7 @@ function getProgressColor(pct) {
 }
 
 // 現在のページがアカウント管理ページかどうか
-const isAccountsPage = window.location.pathname === "/accounts";
+const isAccountsPage = window.location.pathname.replace(/\/+$/, "") === "/accounts";
 
 function renderAccounts(accounts) {
     const list = document.getElementById("accountList");
