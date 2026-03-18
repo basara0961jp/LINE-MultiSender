@@ -1,6 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
     loadAccounts();
     loadSchedules();
+    loadGreeting();
 
     // 送信モード切替
     document.querySelectorAll('input[name="mode"]').forEach(radio => {
@@ -86,11 +87,10 @@ function renderAccounts(accounts) {
             const webhookUrl = `${baseUrl}/webhook/${acc.id}`;
 
             const banBadge = acc.apiStatus === 'banned' ? ' <span style="background:#e65100;color:#fff;padding:1px 6px;border-radius:4px;font-size:0.7rem">垢BAN</span>' : '';
-            const greetBadge = (acc.greetingMessage || acc.greetingImageUrl) ? ' <span style="background:#1b5e20;color:#fff;padding:1px 6px;border-radius:4px;font-size:0.7rem">あいさつON</span>' : '';
             return `
             <div class="account-item" data-id="${acc.id}" ${acc.apiStatus === 'banned' ? 'style="border-left:4px solid #e65100"' : ''}>
                 <div class="account-header">
-                    <span class="name">${escapeHtml(acc.name)}${banBadge}${greetBadge}</span>
+                    <span class="name">${escapeHtml(acc.name)}${banBadge}</span>
                     <button class="action-btn" onclick="refreshFriendCount('${acc.id}')" title="友だち数を更新">&#8635;</button>
                     <button class="action-btn" onclick="openEditModal('${acc.id}', ${acc.maxFriends})" title="設定">&#9881;</button>
                     <button class="delete-btn" onclick="deleteAccount('${acc.id}')" title="削除">&#10005;</button>
@@ -228,36 +228,6 @@ function openEditModal(id, currentMax) {
     document.getElementById("editAccountId").value = id;
     document.getElementById("editMaxFriends").value = currentMax;
     document.getElementById("editChannelSecret").value = "";
-
-    // あいさつメッセージを読み込み
-    var gMsg = document.getElementById("editGreetingMessage");
-    var gPreview = document.getElementById("greetingImagePreview");
-    var gImg = document.getElementById("greetingPreviewImg");
-    var gCancelBtn = document.getElementById("cancelGreetingImgBtn");
-    if (gMsg) {
-        gMsg.value = "";
-        greetingPendingImage = null;
-        greetingExistingUrl = "";
-        if (gPreview) gPreview.style.display = "none";
-        if (gCancelBtn) gCancelBtn.style.display = "none";
-        var fileInput = document.getElementById("editGreetingImageFile");
-        if (fileInput) fileInput.value = "";
-
-        // アカウントデータからgreeting情報を取得
-        fetch("/api/accounts").then(r => r.json()).then(accounts => {
-            var acc = accounts.find(a => a.id === id);
-            if (acc) {
-                gMsg.value = acc.greetingMessage || "";
-                if (acc.greetingImageUrl) {
-                    greetingExistingUrl = acc.greetingImageUrl;
-                    gImg.src = acc.greetingImageUrl;
-                    gPreview.style.display = "block";
-                    gCancelBtn.style.display = "inline-block";
-                }
-            }
-        });
-    }
-
     document.getElementById("editModal").classList.remove("hidden");
 }
 
@@ -265,9 +235,57 @@ function closeEditModal() {
     document.getElementById("editModal").classList.add("hidden");
 }
 
-// ─── あいさつメッセージ画像 ──────────────────────────────
+async function saveAccountSettings() {
+    const id = document.getElementById("editAccountId").value;
+    const maxFriends = parseInt(document.getElementById("editMaxFriends").value);
+    const channelSecret = document.getElementById("editChannelSecret").value.trim();
+
+    if (!maxFriends || maxFriends < 1) {
+        alert("有効な上限数を入力してください");
+        return;
+    }
+
+    const body = { maxFriends };
+    if (channelSecret) {
+        body.channelSecret = channelSecret;
+    }
+
+    try {
+        const resp = await fetch(`/api/accounts/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+        });
+        const data = await resp.json();
+
+        if (resp.ok) {
+            closeEditModal();
+            loadAccounts();
+        } else {
+            alert(data.error || "保存に失敗しました");
+        }
+    } catch (err) {
+        alert("通信エラーが発生しました");
+    }
+}
+
+// ─── あいさつメッセージ（グローバル） ──────────────────────
 let greetingPendingImage = null;
 let greetingExistingUrl = "";
+
+function loadGreeting() {
+    var msgEl = document.getElementById("greetingMsg");
+    if (!msgEl) return;
+    fetch("/api/greeting").then(r => r.json()).then(d => {
+        msgEl.value = d.greetingMessage || "";
+        if (d.greetingImageUrl) {
+            greetingExistingUrl = d.greetingImageUrl;
+            document.getElementById("greetingPreviewImg").src = d.greetingImageUrl;
+            document.getElementById("greetingImagePreview").style.display = "block";
+            document.getElementById("cancelGreetingImgBtn").style.display = "inline-block";
+        }
+    });
+}
 
 function handleGreetingImage(event) {
     const file = event.target.files[0];
@@ -293,55 +311,39 @@ function cancelGreetingImage() {
     document.getElementById("greetingImagePreview").style.display = "none";
     document.getElementById("cancelGreetingImgBtn").style.display = "none";
     document.getElementById("greetingPreviewImg").src = "";
-    document.getElementById("editGreetingImageFile").value = "";
+    document.getElementById("greetingImageFile").value = "";
 }
 
-async function saveAccountSettings() {
-    const id = document.getElementById("editAccountId").value;
-    const maxFriends = parseInt(document.getElementById("editMaxFriends").value);
-    const channelSecret = document.getElementById("editChannelSecret").value.trim();
+async function saveGreeting() {
+    var statusEl = document.getElementById("greetingStatus");
+    var body = { greetingMessage: document.getElementById("greetingMsg").value };
 
-    if (!maxFriends || maxFriends < 1) {
-        alert("有効な上限数を入力してください");
-        return;
-    }
-
-    const body = { maxFriends };
-    if (channelSecret) {
-        body.channelSecret = channelSecret;
-    }
-
-    // あいさつメッセージ
-    var gMsg = document.getElementById("editGreetingMessage");
-    if (gMsg) {
-        body.greetingMessage = gMsg.value;
-    }
-
-    // あいさつ画像アップロード
     try {
         if (greetingPendingImage) {
-            const formData = new FormData();
+            var formData = new FormData();
             formData.append("image", greetingPendingImage);
-            const upResp = await fetch("/api/upload-image", { method: "POST", body: formData });
-            const upData = await upResp.json();
+            var upResp = await fetch("/api/upload-image", { method: "POST", body: formData });
+            var upData = await upResp.json();
             if (!upResp.ok) { alert(upData.error || "画像アップロード失敗"); return; }
             body.greetingImageUrl = upData.url;
-        } else if (!greetingExistingUrl) {
+        } else if (greetingExistingUrl) {
+            body.greetingImageUrl = greetingExistingUrl;
+        } else {
             body.greetingImageUrl = "";
         }
 
-        const resp = await fetch(`/api/accounts/${id}`, {
+        var resp = await fetch("/api/greeting", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body),
         });
-        const data = await resp.json();
-
         if (resp.ok) {
-            closeEditModal();
-            loadAccounts();
+            greetingPendingImage = null;
+            if (body.greetingImageUrl) greetingExistingUrl = body.greetingImageUrl;
+            statusEl.innerHTML = '<span style="color:#2e7d32">保存しました</span>';
+            setTimeout(() => { statusEl.innerHTML = ""; }, 3000);
         } else {
-            alert(data.error || "保存に失敗しました");
+            alert("保存に失敗しました");
         }
     } catch (err) {
         alert("通信エラーが発生しました");

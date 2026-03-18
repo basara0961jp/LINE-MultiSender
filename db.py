@@ -240,6 +240,14 @@ def _init_sqlite():
         )
     """)
 
+    # サイト設定テーブル
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS site_settings (
+            key TEXT PRIMARY KEY,
+            value TEXT DEFAULT ''
+        )
+    """)
+
     # 既存DB移行用のALTER TABLE
     for stmt in [
         "ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0",
@@ -247,8 +255,6 @@ def _init_sqlite():
         "ALTER TABLE chat_messages ADD COLUMN media_url TEXT DEFAULT ''",
         "ALTER TABLE schedules ADD COLUMN image_url TEXT DEFAULT ''",
         "ALTER TABLE accounts ADD COLUMN api_status TEXT DEFAULT 'active'",
-        "ALTER TABLE accounts ADD COLUMN greeting_message TEXT DEFAULT ''",
-        "ALTER TABLE accounts ADD COLUMN greeting_image_url TEXT DEFAULT ''",
     ]:
         try:
             c.execute(stmt)
@@ -399,6 +405,14 @@ def _init_pg():
             status TEXT DEFAULT 'active',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE(scenario_id, account_id, line_user_id)
+        )
+    """)
+
+    # サイト設定テーブル
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS site_settings (
+            key TEXT PRIMARY KEY,
+            value TEXT DEFAULT ''
         )
     """)
 

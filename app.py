@@ -735,8 +735,6 @@ def get_accounts():
     safe = []
     for a in rows:
         api_status = a["api_status"] if "api_status" in a.keys() else "active"
-        greeting_message = a["greeting_message"] if "greeting_message" in a.keys() else ""
-        greeting_image_url = a["greeting_image_url"] if "greeting_image_url" in a.keys() else ""
         safe.append({
             "id": a["id"],
             "name": a["name"],
@@ -745,8 +743,6 @@ def get_accounts():
             "friendCount": a["friend_count"],
             "hasSecret": bool(a["channel_secret"]),
             "apiStatus": api_status,
-            "greetingMessage": greeting_message,
-            "greetingImageUrl": greeting_image_url,
         })
     return jsonify(safe)
 
@@ -824,12 +820,6 @@ def update_account(account_id):
     if "channelSecret" in data:
         conn.execute("UPDATE accounts SET channel_secret = ? WHERE id = ? AND user_id = ?",
                      (data["channelSecret"].strip(), account_id, current_user.id))
-    if "greetingMessage" in data:
-        conn.execute("UPDATE accounts SET greeting_message = ? WHERE id = ? AND user_id = ?",
-                     (data["greetingMessage"], account_id, current_user.id))
-    if "greetingImageUrl" in data:
-        conn.execute("UPDATE accounts SET greeting_image_url = ? WHERE id = ? AND user_id = ?",
-                     (data["greetingImageUrl"], account_id, current_user.id))
 
     conn.commit()
     conn.close()
@@ -902,10 +892,12 @@ def _upsert_friend(conn, account_id, token, line_user_id):
     )
 
 
-def _send_greeting(account, line_user_id):
-    """友だち追加時にあいさつメッセージを送信"""
-    greeting_msg = account["greeting_message"] if "greeting_message" in account.keys() else ""
-    greeting_img = account["greeting_image_url"] if "greeting_image_url" in account.keys() else ""
+def _send_greeting(conn, token, line_user_id):
+    """友だち追加時にグローバルあいさつメッセージを送信"""
+    row_msg = conn.fetchone("SELECT value FROM site_settings WHERE key = 'greeting_message'")
+    row_img = conn.fetchone("SELECT value FROM site_settings WHERE key = 'greeting_image_url'")
+    greeting_msg = row_msg["value"] if row_msg else ""
+    greeting_img = row_img["value"] if row_img else ""
     if not greeting_msg and not greeting_img:
         return
 
@@ -922,13 +914,13 @@ def _send_greeting(account, line_user_id):
             f"{LINE_API_BASE}/message/push",
             headers={
                 "Content-Type": "application/json",
-                "Authorization": f"Bearer {account['token']}",
+                "Authorization": f"Bearer {token}",
             },
             json={"to": line_user_id, "messages": messages},
             timeout=10,
         )
         if resp.status_code == 200:
-            print(f"[GREETING] 送信成功: {account['id'][:8]}... → {line_user_id[:8]}...")
+            print(f"[GREETING] 送信成功: {line_user_id[:8]}...")
         else:
             print(f"[GREETING] 送信失敗: status={resp.status_code}")
     except Exception as e:
@@ -975,7 +967,7 @@ def webhook(account_id):
             friend_count += 1
             if user_id:
                 _upsert_friend(conn, account_id, token, user_id)
-                _send_greeting(target, user_id)
+                _send_greeting(conn, token, user_id)
                 _start_step_subscriptions(conn, account_id, user_id)
         elif event_type == "unfollow":
             friend_count = max(0, friend_count - 1)
@@ -1454,6 +1446,37 @@ def api_update_webhooks():
             results.append({"id": acc["id"], "success": False, "error": str(e)})
 
     return jsonify({"results": results})
+
+
+# ─── あいさつメッセージ（グローバル設定） ───────────────────
+
+@app.route("/api/greeting", methods=["GET"])
+@login_required
+def get_greeting():
+    conn = get_db()
+    row_msg = conn.fetchone("SELECT value FROM site_settings WHERE key = 'greeting_message'")
+    row_img = conn.fetchone("SELECT value FROM site_settings WHERE key = 'greeting_image_url'")
+    conn.close()
+    return jsonify({
+        "greetingMessage": row_msg["value"] if row_msg else "",
+        "greetingImageUrl": row_img["value"] if row_img else "",
+    })
+
+
+@app.route("/api/greeting", methods=["PUT"])
+@login_required
+def save_greeting():
+    data = request.get_json()
+    conn = get_db()
+    for key, val in [("greeting_message", data.get("greetingMessage", "")), ("greeting_image_url", data.get("greetingImageUrl", ""))]:
+        existing = conn.fetchone("SELECT key FROM site_settings WHERE key = ?", (key,))
+        if existing:
+            conn.execute("UPDATE site_settings SET value = ? WHERE key = ?", (val, key))
+        else:
+            conn.execute("INSERT INTO site_settings (key, value) VALUES (?, ?)", (key, val))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
 
 
 @app.route("/uploads/<filename>")
